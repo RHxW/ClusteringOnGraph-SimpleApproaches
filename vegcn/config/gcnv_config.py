@@ -5,6 +5,8 @@ CONFIG = {
     "test_data_root": "",
     "device": "cuda:0",
 
+    "epochs": 5,
+
     "knn": 20,
     "knn_method": "faiss",  # nmslib, faiss-gpu
     "cut_edge_sim_th": 0.6,  # origin th_sim

@@ -1,2 +1,4 @@
 # ClusteringOnGraph-SimpleApproaches
-simplified version of clustering method with GCNs
+
+COGSAs:
+simplified version of clustering algorithms with GCNs

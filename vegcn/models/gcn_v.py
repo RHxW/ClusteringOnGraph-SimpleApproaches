@@ -18,20 +18,11 @@ class GCN_V(nn.Module):
             nn.PReLU(nhid),
             nn.Linear(nhid, self.nclass)
         )
-        self.loss = torch.nn.MSELoss()
 
-    def forward(self, data, output_feat=False, return_loss=False):
-        assert not output_feat or not return_loss
-        x, adj = data[0], data[1]
+    def forward(self, x, adj, output_feat=False):
         x = self.conv1(x, adj)
         pred = self.classifier(x).view(-1)
 
         if output_feat:
             return pred, x
-
-        if return_loss:
-            label = data[2]
-            loss = self.loss(pred, label)
-            return pred, loss
-
-        return pred
+        return pred, None
