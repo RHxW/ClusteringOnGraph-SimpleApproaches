@@ -24,9 +24,9 @@ def density(dists, radius=0.3, use_weight=True):
 
 
 def s_nbr(dists, nbrs, idx2lb, **kwargs):
-    ''' use supervised confidence defined on neigborhood
+    ''' use supervised confidence defined on neighborhood
     '''
-    num, _ = dists.shape    # num:数据总数
+    num, _ = dists.shape    # num: 数据总数, _: knn-k
     conf = np.zeros((num, ), dtype=np.float32)
     contain_neg = 0
     for i, (nbr, dist) in enumerate(zip(nbrs, dists)):
@@ -46,7 +46,7 @@ def s_nbr(dists, nbrs, idx2lb, **kwargs):
 
 
 def s_nbr_size_norm(dists, nbrs, idx2lb, **kwargs):
-    ''' use supervised confidence defined on neigborhood (norm by size)
+    ''' use supervised confidence defined on neighborhood (norm by size)
     '''
     num, _ = dists.shape
     conf = np.zeros((num, ), dtype=np.float32)
@@ -92,7 +92,7 @@ def s_avg(feats, idx2lb, lb2idxs, **kwargs):
 
 
 def s_center(feats, idx2lb, lb2idxs, **kwargs):
-    ''' use average similarity of intra-nodes
+    ''' use similarity of average feature of intra-nodes
     '''
     num = len(idx2lb)
     conf = np.zeros((num, ), dtype=np.float32)
@@ -120,8 +120,8 @@ def confidence(metric='s_nbr', **kwargs):
     if metric in metric2func:
         func = metric2func[metric]
     else:
-        raise KeyError('Only support confidence metircs: {}'.format(
-            metric2func.keys()))
+        raise KeyError('Only support confidence metircs: {}, and {} is not supported!'.format(
+            metric2func.keys(), metric))
 
     conf = func(**kwargs)
     return conf
