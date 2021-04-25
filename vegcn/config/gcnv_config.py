@@ -1,15 +1,17 @@
 CONFIG = {
     "proj_name": "train_gcnv_1",
     "phase": "train",
-    "train_data_root": "",
+    "train_data_root": "/tmp/pycharm_project_444/data/train/",
     "test_data_root": "",
     "device": "cuda:0",
+    "checkpoint_path": "/tmp/pycharm_project_444/data/train/train_gcnv_1/checkpoint_1.pth",
 
-    "epochs": 5,
+    "epochs": 20,
 
     "knn": 20,
     "knn_method": "faiss",  # nmslib, faiss-gpu
     "cut_edge_sim_th": 0.6,  # origin th_sim
+    "eval_interim": True,  # ?
 
     "feature_dim": 512,
     "is_norm_feat": True,

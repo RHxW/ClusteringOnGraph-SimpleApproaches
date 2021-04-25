@@ -10,7 +10,10 @@ from vegcn.confidence import (confidence, confidence_to_peaks)
 
 class GCNVDataset(object):
     def __init__(self, cfg):
+        self.phase = cfg["phase"]
         self.train_data_root = cfg["train_data_root"]
+        self.test_data_root = cfg["test_data_root"]
+
         self.proj_name = cfg["proj_name"]
         self.proj_path = os.path.join(self.train_data_root, self.proj_name)
         self.feat_path = os.path.join(self.proj_path, "feature.npy")
@@ -85,7 +88,7 @@ class GCNVDataset(object):
                                          metric=self.conf_metric,
                                          idx2lb=self.idx2lb,
                                          lb2idxs=self.lb2idxs)
-                if cfg.eval_interim:
+                if cfg["eval_interim"]:
                     _, self.peaks = confidence_to_peaks(self.dists, self.nbrs, self.labels, self.max_conn)
 
     def __getitem__(self, index):

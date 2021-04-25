@@ -1,10 +1,11 @@
-from __future__ import division
-
+import os
 import torch
 import numpy as np
 import os.path as osp
 import torch.nn.functional as F
 
+from vegcn.models.gcn_v import GCN_V
+from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
 from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
@@ -40,9 +41,26 @@ def test(model, dataset, cfg):
     return pred_confs, gcn_feat
 
 
+def test_gcnv(cfg):
+    device = cfg["device"]
+    # dataset
+    dataset = GCNVDataset(cfg)
+
+    # model
+    feature_dim = cfg["feature_dim"]
+    nhid = cfg["nhid"]
+    nclass = cfg["nclass"]
+    dropout = cfg["dropout"]
+    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
+    # load checkpoint
+    checkpoint_path = cfg["checkpoint_path"]
+    if os.path.exists(checkpoint_path):
+        model.load_state_dict(torch.load(checkpoint_path))
+
+
 def test_gcn_v_OLD(model, cfg):
     for k, v in cfg.model['kwargs'].items():
-        setattr(cfg.test_data, k, v)    # 在对象"cfg.test_data" 末尾追加 "k" 属性及其值v
+        setattr(cfg.test_data, k, v)  # 在对象"cfg.test_data" 末尾追加 "k" 属性及其值v
     dataset = GCNVDataset(cfg)
 
     folder = '{}_gcnv_k_{}_th_{}'.format(cfg.test_name, cfg.knn, cfg.th_sim)
@@ -58,7 +76,7 @@ def test_gcn_v_OLD(model, cfg):
         if inst_num != dataset.inst_num:
             print(
                 'WARNING!!! instance number in {} is different from dataset: {} vs {}'.
-                format(opath_pred_confs, inst_num, len(dataset)))
+                    format(opath_pred_confs, inst_num, len(dataset)))
     else:
         pred_confs, gcn_feat = test(model, dataset, cfg)
         inst_num = dataset.inst_num
@@ -74,7 +92,7 @@ def test_gcn_v_OLD(model, cfg):
     if not dataset.ignore_label and cfg.eval_interim:
         # evaluate the intermediate results
         for i in range(cfg.max_conn):
-            num = len(dataset.peaks)    # 只用到 num
+            num = len(dataset.peaks)  # 只用到 num
             pred_peaks_i = np.arange(num)
             peaks_i = np.arange(num)
             for j in range(num):
