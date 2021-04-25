@@ -1,6 +1,5 @@
 import torch
-import numpy as np
-
+import os
 from vegcn.models.gcn_v import GCN_V
 from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
@@ -18,6 +17,10 @@ def train_gcnv(cfg):
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
     model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
+    # load checkpoint
+    checkpoint_path = cfg["checkpoint_path"]
+    if os.path.exists(checkpoint_path):
+        model.load_state_dict(torch.load(checkpoint_path))
 
     # optimizer
     lr = cfg["lr"]
@@ -37,9 +40,17 @@ def train_gcnv(cfg):
 
     epochs = cfg["epochs"]
     for epoch in range(epochs):
-        pred, out_feat = model(features, adj)
+        pred, out_feat = model(features, adj, output_feature)
         loss = loss_func(pred, labels)
         loss_val = loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        print("epoch: %d, loss %.4f" % (epoch, loss_val))
+
+    torch.save(model.state_dict(), checkpoint_path)
+
+if __name__ == "__main__":
+    cfg = CONFIG
+    train_gcnv(cfg)
