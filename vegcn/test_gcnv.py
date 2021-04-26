@@ -42,6 +42,7 @@ def test(model, dataset, cfg):
 
 
 def test_gcnv(cfg):
+    torch.set_grad_enabled(False)
     device = cfg["device"]
     # dataset
     dataset = GCNVDataset(cfg)
@@ -56,6 +57,42 @@ def test_gcnv(cfg):
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):
         model.load_state_dict(torch.load(checkpoint_path))
+
+    model.eval()
+    # test data
+    features = torch.tensor(dataset.features, dtype=torch.float32).to(device)
+    adj = sparse_mx_to_torch_sparse_tensor(dataset.adj).to(device)
+    labels = torch.tensor(dataset.labels, dtype=torch.float32).to(device)
+
+    output, gcn_feat = model(features, adj, output_feat=True)
+
+    if not dataset.ignore_label:
+        labels = torch.from_numpy(dataset.labels)
+        labels = labels.to(device)
+        loss = F.mse_loss(output, labels)
+        loss_test = float(loss)
+        print('[Test] loss = {:.4f}'.format(loss_test))
+
+    pred_confs = output.detach().cpu().numpy()
+    gcn_feat = gcn_feat.detach().cpu().numpy()
+
+    inst_num = dataset.inst_num
+
+    print('pred_confs: mean({:.4f}). max({:.4f}), min({:.4f})'.format(
+        pred_confs.mean(), pred_confs.max(), pred_confs.min()))
+
+    print('Convert to cluster')
+    with Timer('Predition to peaks'):
+        pred_dist2peak, pred_peaks = confidence_to_peaks(
+            dataset.dists, dataset.nbrs, pred_confs, cfg["max_conn"])
+
+    with Timer('Peaks to clusters (th_cut={})'.format(cfg["tau_0"])):
+        pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau_0"],
+                                      inst_num)
+
+    if cfg["use_gcn_feat"]:
+        # TODO 使用gcn_feat重构knn图
+        pass
 
 
 def test_gcn_v_OLD(model, cfg):
