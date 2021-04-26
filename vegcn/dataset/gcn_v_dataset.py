@@ -38,6 +38,7 @@ class GCNVDataset(object):
                 self.ignore_label = False
             else:
                 self.inst_num = -1
+                self.gt_labels = None
                 self.ignore_label = True
 
             if not os.path.exists(self.feat_path):
@@ -90,6 +91,8 @@ class GCNVDataset(object):
                                          lb2idxs=self.lb2idxs)
                 if cfg["eval_interim"]:
                     _, self.peaks = confidence_to_peaks(self.dists, self.nbrs, self.labels, self.max_conn)
+        else:
+            self.labels = None
 
     def __getitem__(self, index):
         ''' return the entire graph for training.

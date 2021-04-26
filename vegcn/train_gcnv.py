@@ -14,9 +14,10 @@ def train_gcnv(cfg):
     # model
     feature_dim = cfg["feature_dim"]
     nhid = cfg["nhid"]
+    nlayer = cfg["nlayer"]
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
-    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
+    model = GCN_V(feature_dim, nhid, nlayer, nclass, dropout).to(device)
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):

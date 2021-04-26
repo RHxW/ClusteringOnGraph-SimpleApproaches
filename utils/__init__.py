@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 from .misc import *
 from .knn import *
 from .misc_cluster import *

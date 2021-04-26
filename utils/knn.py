@@ -217,6 +217,35 @@ def build_knns(knn_prefix,
     return knns
 
 
+def build_knns_simple(feats, knn_method, k, num_process=None):
+    """
+    build knn and NO SAVE SHIT!
+    :param feats:
+    :param knn_method:
+    :param k:
+    :param num_process:
+    :return:
+    """
+    with Timer('build index'):
+        if knn_method == 'hnsw':
+            index = knn_hnsw(feats, k)
+        elif knn_method == 'faiss':
+            index = knn_faiss(feats,
+                              k,
+                              omp_num_threads=num_process,
+                              rebuild_index=True)
+        elif knn_method == 'faiss_gpu':
+            index = knn_faiss_gpu(feats,
+                                  k,
+                                  num_process=num_process)
+        else:
+            raise KeyError(
+                'Only support hnsw and faiss currently ({}).'.format(
+                    knn_method))
+        knns = index.get_knns()  # 包含邻接点 和 距离（1-sim）
+    return knns
+
+
 class knn():
     def __init__(self, feats, k, index_path='', verbose=True):
         pass

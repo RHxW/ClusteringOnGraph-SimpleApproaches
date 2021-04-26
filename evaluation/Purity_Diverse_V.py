@@ -52,3 +52,9 @@ def V_Measure(label_true, label_pred):
     v = 2 * h * c / (h + c)
 
     return h, c, v
+
+def get_DPV_measure(label_true, label_pred):
+    DS = get_Diverse_Score(label_true, label_pred)
+    PS = get_Purity_Score(label_true, label_pred)
+    VM = V_Measure(label_true, label_pred)
+    return [DS, PS, VM]

@@ -11,9 +11,11 @@ from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
 from utils import (sparse_mx_to_torch_sparse_tensor, list2dict, write_meta,
-                   write_feat, mkdir_if_no_exists, rm_suffix, build_knns,
+                   write_feat, mkdir_if_no_exists, rm_suffix, build_knns, fast_knns2spmat,
                    knns2ordered_nbrs, BasicDataset, Timer)
 from evaluation import evaluate, accuracy
+from utils.knn import build_knns_simple
+from evaluation.Purity_Diverse_V import get_DPV_measure
 
 
 def test(model, dataset, cfg):
@@ -46,13 +48,15 @@ def test_gcnv(cfg):
     device = cfg["device"]
     # dataset
     dataset = GCNVDataset(cfg)
+    label_true = dataset.gt_labels
 
     # model
     feature_dim = cfg["feature_dim"]
     nhid = cfg["nhid"]
+    nlayer = cfg["nlayer"]
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
-    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
+    model = GCN_V(feature_dim, nhid, nlayer, nclass, dropout).to(device)
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):
@@ -62,7 +66,7 @@ def test_gcnv(cfg):
     # test data
     features = torch.tensor(dataset.features, dtype=torch.float32).to(device)
     adj = sparse_mx_to_torch_sparse_tensor(dataset.adj).to(device)
-    labels = torch.tensor(dataset.labels, dtype=torch.float32).to(device)
+    # labels = torch.tensor(dataset.labels, dtype=torch.float32).to(device)
 
     output, gcn_feat = model(features, adj, output_feat=True)
 
@@ -83,16 +87,38 @@ def test_gcnv(cfg):
 
     print('Convert to cluster')
     with Timer('Predition to peaks'):
-        pred_dist2peak, pred_peaks = confidence_to_peaks(
-            dataset.dists, dataset.nbrs, pred_confs, cfg["max_conn"])
+        pred_dist2peak, pred_peaks = confidence_to_peaks(dataset.dists, dataset.nbrs, pred_confs, cfg["max_conn"])
 
     with Timer('Peaks to clusters (th_cut={})'.format(cfg["tau_0"])):
-        pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau_0"],
-                                      inst_num)
+        pred_labels_0 = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau_0"], inst_num)
+
+    if label_true:
+        diverse_score, purity_score, V_measure = get_DPV_measure(label_true, pred_labels_0)
+        h, c, v = V_measure
+        print("Origin feature result:")
+        print("V-measure score: h: %.6f, c: %.6f, v: %.6f" % (h, c, v))
+        print("*" * 50)
+    else:
+        print("No true label.")
 
     if cfg["use_gcn_feat"]:
         # TODO 使用gcn_feat重构knn图
-        pass
+        knn_method = cfg["knn_method"]
+        k = cfg["knn"]
+        knns = build_knns_simple(gcn_feat, knn_method, k)
+
+        dists, nbrs = knns2ordered_nbrs(knns)
+        pred_dist2peak, pred_peaks = confidence_to_peaks(
+            dists, nbrs, pred_confs, cfg["max_conn"])
+        pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau"], inst_num)
+        if label_true:
+            diverse_score, purity_score, V_measure = get_DPV_measure(label_true, pred_labels)
+            h, c, v = V_measure
+            print("GCN feature result:")
+            print("V-measure score: h: %.6f, c: %.6f, v: %.6f" % (h, c, v))
+            print("*" * 50)
+        else:
+            print("No true label.")
 
 
 def test_gcn_v_OLD(model, cfg):

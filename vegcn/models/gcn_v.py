@@ -1,16 +1,14 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-import torch
 import torch.nn as nn
 
 from vegcn.models.utils import GraphConv, MeanAggregator
 
 
 class GCN_V(nn.Module):
-    def __init__(self, feature_dim, nhid, nclass, dropout=0):
+    def __init__(self, feature_dim, nhid, nlayer, nclass, dropout=0):
         super(GCN_V, self).__init__()
         self.conv1 = GraphConv(feature_dim, nhid, MeanAggregator, dropout)
+        for i in range(1, nlayer):
+            self.add_module("conv%d" % i, GraphConv(nhid, nhid, MeanAggregator, dropout))
 
         self.nclass = nclass
         self.classifier = nn.Sequential(

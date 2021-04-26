@@ -16,12 +16,13 @@ CONFIG = {
     "feature_dim": 512,
     "is_norm_feat": True,
     "nhid": 1024,
+    "nlayer": 1,
     "nclass": 1,
     "dropout": 0.,
     "use_gcn_feat": True,
     "max_conn": 10,
-    "tau_0": 0.67,
-    "tau": 0.67,
+    "tau_0": 0.67,  # origin feature tau
+    "tau": 0.67,  # gcn feature tau
 
     # optimizer
     "lr": 0.01,
