@@ -1,10 +1,9 @@
 CONFIG = {
-    "proj_name": "train_gcnv_nlayer1",
+    "proj_name": "train_gcn_nlayer_1_360k_15000",
     "phase": "train",
-    "train_data_root": "/tmp/pycharm_project_444/data/train/",
-    "test_data_root": "",
+    "data_root": "/tmp/pycharm_project_444/data/",
     "device": "cuda:0",
-    "checkpoint_path": "/tmp/pycharm_project_444/data/train/train_gcnv_1/checkpoint_1.pth",
+    "checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_15000/checkpoint_1.pth",
 
     "save_output": True,
     "output_root": "/tmp/pycharm_project_444/data/output/",
@@ -12,7 +11,7 @@ CONFIG = {
     "epochs": 20,
 
     "knn": 20,
-    "knn_method": "faiss",  # nmslib, faiss-gpu
+    "knn_method": "hnsw",  # hnsw=nmslib, faiss, faiss_gpu
     "cut_edge_sim_th": 0.6,  # origin th_sim
     "eval_interim": True,  # ?
 

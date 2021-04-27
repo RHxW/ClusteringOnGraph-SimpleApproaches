@@ -232,6 +232,7 @@ def clusters2labels(clusters):
 
 
 def intdict2ndarray(d, default_val=-1):
+    # d: dataset.idx2lb
     arr = np.zeros(len(d)) + default_val
     for k, v in d.items():
         arr[k] = v

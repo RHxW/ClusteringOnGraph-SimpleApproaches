@@ -11,16 +11,11 @@ from vegcn.confidence import (confidence, confidence_to_peaks)
 class GCNVDataset(object):
     def __init__(self, cfg):
         self.phase = cfg["phase"]
-        self.train_data_root = cfg["train_data_root"]
-        self.test_data_root = cfg["test_data_root"]
+        self.data_root = cfg["data_root"]
 
         self.proj_name = cfg["proj_name"]
-        if self.phase == "train":
-            self.proj_path = os.path.join(self.train_data_root, self.proj_name)
-        elif self.phase == "test":
-            self.proj_path = os.path.join(self.test_data_root, self.proj_name)
-        else:
-            self.proj_path = None  # TODO validation?
+        self.proj_path = os.path.join(self.data_root, self.proj_name)
+        self.proj_path = os.path.join(self.proj_path, self.phase)
         print("Phase: %s" % self.phase)
         print("Project Path: %s" % self.proj_path)
         print("-" * 50)

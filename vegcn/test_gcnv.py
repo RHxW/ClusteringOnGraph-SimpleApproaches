@@ -48,6 +48,7 @@ def test_gcnv(cfg):
     torch.set_grad_enabled(False)
     device = cfg["device"]
     # dataset
+    cfg["phase"] = "test"
     dataset = GCNVDataset(cfg)
     label_true = dataset.gt_labels
 

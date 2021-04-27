@@ -9,6 +9,7 @@ from utils import sparse_mx_to_torch_sparse_tensor
 def train_gcnv(cfg):
     device = cfg["device"]
     # dataset
+    cfg["phase"] = "train"
     dataset = GCNVDataset(cfg)
 
     # model

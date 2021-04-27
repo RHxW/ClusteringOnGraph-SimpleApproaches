@@ -1,7 +1,7 @@
 import os
 import math
 import numpy as np
-import multiprocessing as mp
+import multiprocessing
 from tqdm import tqdm
 
 from utils import (load_data, dump_data, mkdir_if_no_exists, Timer)
@@ -264,7 +264,7 @@ class knn():
         if th is None or th <= 0.:
             return self.knns
         # TODO: optimize the filtering process by numpy
-        # nproc = mp.cpu_count()
+        # nproc = multiprocessing.cpu_count()
         nproc = 1
         with Timer('filter edges by th {} (CPU={})'.format(th, nproc),
                    self.verbose):
@@ -272,7 +272,7 @@ class knn():
             self.th_knns = []
             tot = len(self.knns)
             if nproc > 1:
-                pool = mp.Pool(nproc)
+                pool = multiprocessing.Pool(nproc)
                 th_knns = list(
                     tqdm(pool.imap(self.filter_by_th, range(tot)), total=tot))
                 pool.close()
@@ -313,13 +313,14 @@ class knn_hnsw(knn):
             #                     space='cosinesimil',
             #                     space_params=space_params)
             index = nmslib.init(method='hnsw', space='cosinesimil')
+            thread_count = multiprocessing.cpu_count()
             if index_path != '' and os.path.isfile(index_path):
                 index.loadIndex(index_path)
             else:
                 index.addDataPointBatch(feats)
                 index.createIndex({
                     'post': 2,
-                    'indexThreadQty': 1
+                    'indexThreadQty': thread_count,
                 },
                     print_progress=verbose)
                 if index_path:
@@ -332,7 +333,7 @@ class knn_hnsw(knn):
                 print('[hnsw] read knns from {}'.format(knn_ofn))
                 self.knns = np.load(knn_ofn)['data']
             else:
-                self.knns = index.knnQueryBatch(feats, k=k)
+                self.knns = index.knnQueryBatch(feats, k=k, num_threads=thread_count)
 
 
 class knn_faiss(knn):
