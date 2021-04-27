@@ -1,10 +1,13 @@
 CONFIG = {
-    "proj_name": "train_gcnv_1",
+    "proj_name": "train_gcnv_nlayer1",
     "phase": "train",
     "train_data_root": "/tmp/pycharm_project_444/data/train/",
     "test_data_root": "",
     "device": "cuda:0",
     "checkpoint_path": "/tmp/pycharm_project_444/data/train/train_gcnv_1/checkpoint_1.pth",
+
+    "save_output": True,
+    "output_root": "/tmp/pycharm_project_444/data/output/",
 
     "epochs": 20,
 

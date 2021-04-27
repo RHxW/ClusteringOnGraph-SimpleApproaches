@@ -4,7 +4,7 @@ import scipy.sparse as sp
 
 def row_normalize(mx):
     """Row-normalize sparse matrix"""
-    rowsum = np.array(mx.sum(1))    # num *
+    rowsum = np.array(mx.sum(1))  # num *
     # if rowsum <= 0, keep its previous value
     rowsum[rowsum <= 0] = 1
     r_inv = np.power(rowsum, -1).flatten()  # 倒数

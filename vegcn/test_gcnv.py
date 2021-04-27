@@ -11,11 +11,12 @@ from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
 from utils import (sparse_mx_to_torch_sparse_tensor, list2dict, write_meta,
-                   write_feat, mkdir_if_no_exists, rm_suffix, build_knns, fast_knns2spmat,
+                   write_feat, mkdir_if_no_exists, rm_suffix, build_knns,
                    knns2ordered_nbrs, BasicDataset, Timer)
 from evaluation import evaluate, accuracy
 from utils.knn import build_knns_simple
 from evaluation.Purity_Diverse_V import get_DPV_measure
+from evaluation.metrics import pairwise
 
 
 def test(model, dataset, cfg):
@@ -92,29 +93,57 @@ def test_gcnv(cfg):
     with Timer('Peaks to clusters (th_cut={})'.format(cfg["tau_0"])):
         pred_labels_0 = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau_0"], inst_num)
 
-    if label_true:
+    # save clustering results
+    if cfg["save_output"]:
+        oname_meta = '{}_gcn_feat'.format(cfg["proj_name"])
+        opath_pred_labels = osp.join(
+            cfg["output_root"], oname_meta, 'tau_{}_pred_labels.txt'.format(cfg["tau_0"]))
+        mkdir_if_no_exists(opath_pred_labels)
+
+        idx2lb = list2dict(pred_labels_0, ignore_value=-1)
+        write_meta(opath_pred_labels, idx2lb, inst_num=inst_num)
+
+    if label_true is not None:
+        print("Origin feature result:")
+        # pairwise F-score
+        avg_pre, avg_rec, fscore = pairwise(label_true, pred_labels_0)
+        print("pairwise F-score: avg_pre: %.6f, avg_rec: %.6f, fscore: %.6f" % (avg_pre, avg_rec, fscore))
+        # V-measure
         diverse_score, purity_score, V_measure = get_DPV_measure(label_true, pred_labels_0)
         h, c, v = V_measure
-        print("Origin feature result:")
         print("V-measure score: h: %.6f, c: %.6f, v: %.6f" % (h, c, v))
         print("*" * 50)
     else:
         print("No true label.")
 
     if cfg["use_gcn_feat"]:
-        # TODO 使用gcn_feat重构knn图
         knn_method = cfg["knn_method"]
         k = cfg["knn"]
+        # rebuild knn graph with gcn features
         knns = build_knns_simple(gcn_feat, knn_method, k)
 
         dists, nbrs = knns2ordered_nbrs(knns)
-        pred_dist2peak, pred_peaks = confidence_to_peaks(
-            dists, nbrs, pred_confs, cfg["max_conn"])
+        pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, pred_confs, cfg["max_conn"])
         pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, cfg["tau"], inst_num)
-        if label_true:
+
+        # save clustering results
+        if cfg["save_output"]:
+            oname_meta = '{}_gcn_feat'.format(cfg["proj_name"])
+            opath_pred_labels = osp.join(
+                cfg["output_root"], oname_meta, 'tau_{}_gcn_feat_pred_labels.txt'.format(cfg["tau"]))
+            mkdir_if_no_exists(opath_pred_labels)
+
+            idx2lb = list2dict(pred_labels, ignore_value=-1)
+            write_meta(opath_pred_labels, idx2lb, inst_num=inst_num)
+
+        if label_true is not None:
+            print("GCN feature result:")
+            # pairwise F-score
+            avg_pre, avg_rec, fscore = pairwise(label_true, pred_labels)
+            print("pairwise F-score: avg_pre: %.6f, avg_rec: %.6f, fscore: %.6f" % (avg_pre, avg_rec, fscore))
+            # V-measure
             diverse_score, purity_score, V_measure = get_DPV_measure(label_true, pred_labels)
             h, c, v = V_measure
-            print("GCN feature result:")
             print("V-measure score: h: %.6f, c: %.6f, v: %.6f" % (h, c, v))
             print("*" * 50)
         else:
@@ -245,3 +274,8 @@ def test_gcn_v_OLD(model, cfg):
             print('==> evaluation')
             for metric in cfg.metrics:
                 evaluate(dataset.gt_labels, pred_labels, metric)
+
+
+if __name__ == "__main__":
+    cfg = CONFIG
+    test_gcnv(cfg)

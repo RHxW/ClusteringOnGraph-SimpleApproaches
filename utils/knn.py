@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 import math
 import numpy as np
@@ -104,7 +101,7 @@ def knns2spmat(knns, k, th_sim=0.7, use_sim=False):
 def fast_knns2spmat(knns, k, th_sim=0.7, use_sim=False, fill_value=None):
     # convert knns to symmetric sparse matrix
     eps = 1e-5
-    n = len(knns)   # 图像数量
+    n = len(knns)  # 图像数量
     if isinstance(knns, list):
         knns = np.array(knns)
     if len(knns.shape) == 2:
@@ -136,7 +133,7 @@ def fast_knns2spmat(knns, k, th_sim=0.7, use_sim=False, fill_value=None):
     data = sims[row, col]
     col = nbrs[row, col]  # convert to absolute column
     assert len(row) == len(col) == len(data)
-    spmat = csr_matrix((data, (row, col)), shape=(n, n))    # 图象数*图象数
+    spmat = csr_matrix((data, (row, col)), shape=(n, n))  # 图象数*图象数
     return spmat
 
 
@@ -324,7 +321,7 @@ class knn_hnsw(knn):
                     'post': 2,
                     'indexThreadQty': 1
                 },
-                                  print_progress=verbose)
+                    print_progress=verbose)
                 if index_path:
                     print('[hnsw] save index to {}'.format(index_path))
                     mkdir_if_no_exists(index_path)
@@ -354,8 +351,7 @@ class knn_faiss(knn):
             faiss.omp_set_num_threads(omp_num_threads)
         self.verbose = verbose
         with Timer('[faiss] build index', verbose):
-            if index_path != '' and not rebuild_index and os.path.exists(
-                    index_path):
+            if index_path != '' and not rebuild_index and os.path.exists(index_path):
                 print('[faiss] read index from {}'.format(index_path))
                 index = faiss.read_index(index_path)
             else:
@@ -363,14 +359,12 @@ class knn_faiss(knn):
                 size, dim = feats.shape
                 index = faiss.IndexFlatIP(dim)
                 if index_key != '':
-                    assert index_key.find(
-                        'HNSW') < 0, 'HNSW returns distances insted of sims'
+                    assert index_key.find('HNSW') < 0, 'HNSW returns distances insted of sims'
                     metric = faiss.METRIC_INNER_PRODUCT
                     nlist = min(4096, 8 * round(math.sqrt(size)))
                     if index_key == 'IVF':
                         quantizer = index
-                        index = faiss.IndexIVFFlat(quantizer, dim, nlist,
-                                                   metric)
+                        index = faiss.IndexIVFFlat(quantizer, dim, nlist, metric)
                     else:
                         index = faiss.index_factory(dim, index_key, metric)
                     if index_key.find('Flat') < 0:

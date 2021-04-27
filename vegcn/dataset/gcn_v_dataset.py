@@ -15,7 +15,15 @@ class GCNVDataset(object):
         self.test_data_root = cfg["test_data_root"]
 
         self.proj_name = cfg["proj_name"]
-        self.proj_path = os.path.join(self.train_data_root, self.proj_name)
+        if self.phase == "train":
+            self.proj_path = os.path.join(self.train_data_root, self.proj_name)
+        elif self.phase == "test":
+            self.proj_path = os.path.join(self.test_data_root, self.proj_name)
+        else:
+            self.proj_path = None  # TODO validation?
+        print("Phase: %s" % self.phase)
+        print("Project Path: %s" % self.proj_path)
+        print("-" * 50)
         self.feat_path = os.path.join(self.proj_path, "feature.npy")
         self.label_path = os.path.join(self.proj_path, "label.txt")
         self.knn_graph_path = os.path.join(self.proj_path, "%s_k_%d.npz" % (cfg["knn_method"], cfg["knn"]))
@@ -33,8 +41,8 @@ class GCNVDataset(object):
         with Timer('read meta and feature'):
             if os.path.exists(self.label_path):
                 self.lb2idxs, self.idx2lb = read_meta(self.label_path)
-                self.inst_num = len(self.idx2lb)    # 样本数量
-                self.gt_labels = intdict2ndarray(self.idx2lb)   # 真实标签
+                self.inst_num = len(self.idx2lb)  # 样本数量
+                self.gt_labels = intdict2ndarray(self.idx2lb)  # 真实标签
                 self.ignore_label = False
             else:
                 self.inst_num = -1
@@ -68,7 +76,7 @@ class GCNVDataset(object):
 
             # build symmetric adjacency matrix
             adj = build_symmetric_adj(adj, self_loop=True)  # 加上自身比较 相似度1
-            adj = row_normalize(adj)    # 归一化
+            adj = row_normalize(adj)  # 归一化
             if self.save_decomposed_adj:
                 adj = sparse_mx_to_indices_values(adj)
                 self.adj_indices, self.adj_values, self.adj_shape = adj
