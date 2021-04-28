@@ -29,9 +29,8 @@ CONFIG = {
     # spss parameter
     "M": 10,
     "N": 10,
-    "K1": 10,
-    "K2": 10,
-    "sample_ratio": 0.9,
+    "K1_ratio": 0.9,
+    "K2_ratio": 0.9,
 
     # optimizer
     "lr": 0.01,

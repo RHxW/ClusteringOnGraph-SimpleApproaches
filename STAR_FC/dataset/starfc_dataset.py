@@ -2,9 +2,8 @@ import os
 import numpy as np
 import random
 
-from utils import (read_meta, read_probs, l2norm, build_knns,
-                   knns2ordered_nbrs, fast_knns2spmat, row_normalize,
-                   build_symmetric_adj, sparse_mx_to_indices_values,
+from utils import (read_meta, read_probs, l2norm, fast_knns2spmat, row_normalize,
+                   build_symmetric_adj, sparse_mx_to_indices_values, sparse_mx_to_torch_sparse_tensor,
                    intdict2ndarray, Timer)
 from utils.knn import build_knns_simple
 
@@ -30,11 +29,12 @@ class STARFCDataset():
         # self.save_decomposed_adj = cfg["save_decomposed_adj"]
 
         # spss parameters
-        self.M = cfg["M"]
-        self.N = cfg["N"]
-        self.K1 = cfg["K1"]
-        self.K2 = cfg["K2"]
-        self.sample_ratio = cfg["sample_ratio"]
+        self.M = max(1, cfg["M"])
+        self.N = max(1, cfg["N"])
+        self.K1_ratio = cfg["K1_ratio"]
+        assert 0 < self.K1_ratio <= 1, "K1_ratio error!"
+        self.K2_ratio = cfg["K2_ratio"]
+        assert 0 < self.K2_ratio <= 1, "K2_ratio error!"
 
         self.cut_edge_sim_th = cfg["cut_edge_sim_th"]
         # self.max_conn = cfg["max_conn"]
@@ -77,32 +77,6 @@ class STARFCDataset():
         with Timer("Construct center feature k-NN"):
             self.center_knn = build_knns_simple(self.center_feat, self.knn_method, self.N)
 
-        # with Timer('read knn graph'):
-        #     if os.path.isfile(self.knn_graph_path):
-        #         print("load knns from the knn_path")
-        #         self.knns = np.load(self.knn_graph_path)['data']
-        #     else:
-        #         if self.knn_graph_path is not None:
-        #             print('knn_graph_path does not exist: {}'.format(self.knn_graph_path))
-        #         knn_prefix = os.path.join(cfg.prefix, 'knns', cfg.name)
-        #         self.knns = build_knns(knn_prefix, self.features, cfg.knn_method, cfg.knn)
-        #
-        #     adj = fast_knns2spmat(self.knns, self.k, self.cut_edge_sim_th, use_sim=True)
-        #
-        #     # build symmetric adjacency matrix
-        #     adj = build_symmetric_adj(adj, self_loop=True)
-        #     # print('adj before norm')
-        #     # print(adj)
-        #     adj = row_normalize(adj)
-        #     if self.save_decomposed_adj:
-        #         adj = sparse_mx_to_indices_values(adj)
-        #         self.adj_indices, self.adj_values, self.adj_shape = adj
-        #     else:
-        #         self.adj = adj
-        #
-        #     # convert knns to (dists, nbrs)
-        #     self.dists, self.nbrs = knns2ordered_nbrs(self.knns)
-
         print('feature shape: {}, k: {}, norm_feat: {}'.format(self.features.shape, self.k, self.is_norm_feat))
 
     def __getitem__(self, idx):
@@ -110,11 +84,53 @@ class STARFCDataset():
 
     def get_SPSS_subgraph(self):
         # within the SPSS(Structure-Preserved Subgraph Sampling) procedure
-        # 1 select M seed clusters
-        seed_clusters = random.sample(self.class_ids, self.M)
-        center_features = self.center_feat[seed_clusters]
-        # 2 select M seed_clusters's N-nearest neighbour -> S1(M*N)
+
+        # 1. select M seed clusters from all class
+        seed_clusters_idx = random.sample(range(0, self.cls_num), self.M)
+        # center_features = self.center_feat[seed_clusters_idx]
+
+        # 2. select M seed_clusters's N-nearest neighbour -> S1(M*N)
         S1 = set()  # class id set
+        S1.update(set(seed_clusters_idx))
+        for idx in seed_clusters_idx:
+            cls_knn = self.center_knn[idx]
+            S1.update(set(cls_knn[0]))
+        s1n = len(S1)
+
+        # 3. select K1 clusters(idx) from S1 as S2
+        K1 = max(int(s1n * self.K1_ratio), 1)
+        S2 = set(random.sample(S1, K1))
+
+        # 4. select K2 nodes from S2 as S
+        gt_label = self.gt_labels[list(S2)]
+        S_lb2idx = dict()
+        S_idx2lb = dict()
+        S_feat_idxs = set()
+
+        for lb in gt_label:
+            _k2 = int(len(self.lb2idxs[lb]) * self.K2_ratio)
+            S_lb2idx[lb] = random.sample(self.lb2idxs[lb], _k2)
+            for _idx in S_lb2idx[lb]:
+                S_idx2lb[_idx] = lb
+            S_feat_idxs.update(set(S_lb2idx[lb]))
+
+        S_features = self.features[list(S_feat_idxs)]
+        S_node_count = len(S_features)
+
+        # 5. build knn of S
+        S_knn = build_knns_simple(S_features, self.knn_method, self.k)
+        adj = fast_knns2spmat(S_knn, self.k, self.cut_edge_sim_th, use_sim=True)
+        # build symmetric adjacency matrix
+        adj = build_symmetric_adj(adj, self_loop=True)
+        adj = row_normalize(adj)
+        # if self.save_decomposed_adj:
+        #     adj = sparse_mx_to_indices_values(adj)
+        #     self.adj_indices, self.adj_values, self.adj_shape = adj
+        # else:
+        #     self.adj = adj
+        adj = sparse_mx_to_torch_sparse_tensor(adj)
+
+        return S_features, adj
 
     def __len__(self):
         pass
