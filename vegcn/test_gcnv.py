@@ -4,7 +4,7 @@ import numpy as np
 import os.path as osp
 import torch.nn.functional as F
 
-from vegcn.models.gcn_v import GCN_V
+from gcn_models.GCNs import GCN_V
 from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
 from vegcn.confidence import confidence_to_peaks
@@ -59,6 +59,7 @@ def test_gcnv(cfg):
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
     model = GCN_V(feature_dim, nhid, nlayer, nclass, dropout).to(device)
+    print("Model: ", model)
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):
@@ -96,6 +97,8 @@ def test_gcnv(cfg):
 
     # save clustering results
     if cfg["save_output"]:
+        print("USING GCN FEATURE!!!")
+        print("-"*50)
         oname_meta = '{}_gcn_feat'.format(cfg["proj_name"])
         opath_pred_labels = osp.join(
             cfg["output_root"], oname_meta, 'tau_{}_pred_labels.txt'.format(cfg["tau_0"]))

@@ -1,6 +1,6 @@
 import torch
 import os
-from vegcn.models.gcn_v import GCN_V
+from gcn_models.GCNs import GCN_V
 from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
 from utils import sparse_mx_to_torch_sparse_tensor
