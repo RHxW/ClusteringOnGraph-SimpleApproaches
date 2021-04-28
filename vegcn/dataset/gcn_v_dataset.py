@@ -40,6 +40,8 @@ class GCNVDataset(object):
                 self.gt_labels = intdict2ndarray(self.idx2lb)  # 真实标签
                 self.ignore_label = False
             else:
+                if self.phase == "train":
+                    raise RuntimeError("Training procedure must have label!")
                 self.inst_num = -1
                 self.gt_labels = None
                 self.ignore_label = True
