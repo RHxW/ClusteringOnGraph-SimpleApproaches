@@ -1,6 +1,6 @@
 import torch
 import os
-from gcn_models.GCNs import GCN_V
+from vegcn.models.gcn_v import GCN_V
 from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
 from utils import sparse_mx_to_torch_sparse_tensor
@@ -15,10 +15,10 @@ def train_gcnv(cfg):
     # model
     feature_dim = cfg["feature_dim"]
     nhid = cfg["nhid"]
-    nlayer = cfg["nlayer"]
+    # nlayer = cfg["nlayer"]
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
-    model = GCN_V(feature_dim, nhid, nlayer, nclass, dropout).to(device)
+    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):

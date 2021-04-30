@@ -3,7 +3,7 @@ CONFIG = {
     "phase": "train",
     "data_root": "/tmp/pycharm_project_444/data/",
     "device": "cuda:0",
-    "checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_15000/checkpoint_1.pth",
+    "checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_2000/checkpoint_1.pth",
 
     "save_output": True,
     "output_root": "/tmp/pycharm_project_444/data/output/",
@@ -18,7 +18,7 @@ CONFIG = {
     "feature_dim": 512,
     "is_norm_feat": True,
     "nhid": 1024,
-    "nlayer": 1,
+    # "nlayer": 1,
     "nclass": 1,
     "dropout": 0.,
     "use_gcn_feat": True,

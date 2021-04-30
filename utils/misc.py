@@ -75,20 +75,21 @@ def read_probs(path, inst_num, feat_dim, dtype=np.float32, verbose=False):
         probs = np.fromfile(path, dtype=dtype, count=count)
         if feat_dim > 1:
             probs = probs.reshape(inst_num, feat_dim)
-    if path.endswith('npy'):
+    elif path.endswith('npy'):
         # probs = np.load(path)[:20000]
         probs = np.load(path)
+    else:
+        return None  # TODO
 
     if verbose:
         print('[{}] shape: {}'.format(path, probs.shape))
     return probs
 
 
-def read_meta(fn_meta, start_pos=0, verbose=True):
+def read_meta(fn_meta, verbose=True):
     lb2idxs = {}
     idx2lb = {}
     with open(fn_meta) as f:
-        # for idx, x in enumerate(f.readlines()[:20000]):
         for idx, x in enumerate(f.readlines()):
             lb = int(x.strip())
             if lb not in lb2idxs:
@@ -233,7 +234,7 @@ def clusters2labels(clusters):
 
 def intdict2ndarray(d, default_val=-1):
     # d: dataset.idx2lb
-    arr = np.zeros(len(d)) + default_val
+    arr = np.zeros(len(d), dtype=np.int32) + default_val
     for k, v in d.items():
         arr[k] = v
     return arr

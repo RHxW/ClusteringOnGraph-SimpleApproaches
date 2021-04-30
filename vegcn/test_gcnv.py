@@ -4,7 +4,7 @@ import numpy as np
 import os.path as osp
 import torch.nn.functional as F
 
-from gcn_models.GCNs import GCN_V
+from vegcn.models.gcn_v import GCN_V
 from vegcn.config.gcnv_config import CONFIG
 from vegcn.dataset.gcn_v_dataset import GCNVDataset
 from vegcn.confidence import confidence_to_peaks
@@ -55,10 +55,10 @@ def test_gcnv(cfg):
     # model
     feature_dim = cfg["feature_dim"]
     nhid = cfg["nhid"]
-    nlayer = cfg["nlayer"]
+    # nlayer = cfg["nlayer"]
     nclass = cfg["nclass"]
     dropout = cfg["dropout"]
-    model = GCN_V(feature_dim, nhid, nlayer, nclass, dropout).to(device)
+    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
     print("Model: ", model)
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]

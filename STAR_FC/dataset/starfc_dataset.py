@@ -46,7 +46,7 @@ class STARFCDataset():
                 self.cls_num = len(self.lb2idxs)  # id数量
                 self.class_ids = list(self.lb2idxs.keys())  # 所有类id
                 assert self.M < self.cls_num, "SPSS parameter M should be smaller than class number!"
-                self.gt_labels = intdict2ndarray(self.idx2lb)  # 真实标签
+                self.gt_labels = intdict2ndarray(self.idx2lb)  # 真实标签 全部样本的标签
                 self.ignore_label = False
             else:
                 if self.phase == "train":
@@ -101,36 +101,73 @@ class STARFCDataset():
         K1 = max(int(s1n * self.K1_ratio), 1)
         S2 = set(random.sample(S1, K1))
 
-        # 4. select K2 nodes from S2 as S
-        gt_label = self.gt_labels[list(S2)]
-        S_lb2idx = dict()
-        S_idx2lb = dict()
-        S_feat_idxs = set()
+        S2_gt_label = np.array(self.class_ids)[list(S2)]
+        S2_feat_idxs = set()
+        for lb in S2_gt_label:
+            S2_feat_idxs.update(set(self.lb2idxs[lb]))
 
-        for lb in gt_label:
-            _k2 = int(len(self.lb2idxs[lb]) * self.K2_ratio)
-            S_lb2idx[lb] = random.sample(self.lb2idxs[lb], _k2)
-            for _idx in S_lb2idx[lb]:
-                S_idx2lb[_idx] = lb
-            S_feat_idxs.update(set(S_lb2idx[lb]))
+        S2_label = self.gt_labels[list(S2_feat_idxs)]
+        S2_features = self.features[list(S2_feat_idxs)]
 
-        S_features = self.features[list(S_feat_idxs)]
-        S_node_count = len(S_features)
+        S2_lb2idx = dict()
+        S2_idx2lb = dict()
+        for i in range(len(S2_features)):
+            _lb = S2_label[i]
+            S2_idx2lb[i] = _lb
+            if _lb in S2_lb2idx:
+                S2_lb2idx[_lb].append(i)
+            else:
+                S2_lb2idx[_lb] = [i]
 
-        # 5. build knn of S
-        S_knn = build_knns_simple(S_features, self.knn_method, self.k)
-        adj = fast_knns2spmat(S_knn, self.k, self.cut_edge_sim_th, use_sim=True)
+        S2_knn = build_knns_simple(S2_features, self.knn_method, self.k)
+        S2_adj = fast_knns2spmat(S2_knn, self.k, self.cut_edge_sim_th, use_sim=True)
         # build symmetric adjacency matrix
-        adj = build_symmetric_adj(adj, self_loop=True)
-        adj = row_normalize(adj)
-        # if self.save_decomposed_adj:
-        #     adj = sparse_mx_to_indices_values(adj)
-        #     self.adj_indices, self.adj_values, self.adj_shape = adj
-        # else:
-        #     self.adj = adj
-        adj = sparse_mx_to_torch_sparse_tensor(adj)
+        S2_adj = build_symmetric_adj(S2_adj, self_loop=True)
+        S2_adj = row_normalize(S2_adj)
+        S2_adj = sparse_mx_to_torch_sparse_tensor(S2_adj)
 
-        return S_features, adj
+        return S2_features, S2_adj, S2_lb2idx, S2_idx2lb, S2_label
+
+        # PUT SR PROCEDURE OUTSIDE!!!
+        # # 4. select K2 nodes from S2 as S
+        # gt_label = self.gt_labels[list(S2)]
+        # S_lb2idx = dict()
+        # S_idx2lb = dict()
+        # S_feat_idxs = set()
+        #
+        # for lb in gt_label:
+        #     _k2 = int(len(self.lb2idxs[lb]) * self.K2_ratio)
+        #     S_lb2idx[lb] = random.sample(self.lb2idxs[lb], _k2)
+        #     for _idx in S_lb2idx[lb]:
+        #         S_idx2lb[_idx] = lb
+        #     S_feat_idxs.update(set(S_lb2idx[lb]))
+        #
+        # S_features = self.features[list(S_feat_idxs)]
+        # S_node_count = len(S_features)
+        #
+        # # 5. build knn of S
+        # S_knn = build_knns_simple(S_features, self.knn_method, self.k)
+        # adj = fast_knns2spmat(S_knn, self.k, self.cut_edge_sim_th, use_sim=True)
+        # # build symmetric adjacency matrix
+        # adj = build_symmetric_adj(adj, self_loop=True)
+        # adj = row_normalize(adj)
+        # adj = sparse_mx_to_torch_sparse_tensor(adj)
+        #
+        # return S_features, adj
 
     def __len__(self):
+        pass
+
+
+class SRStrategyClass():
+    # Sample Randomness Strategy
+    def __init__(self, S2_features, S2_adj, S2_lb2idx, S2_idx2lb, S2_label, K2_ratio):
+        S2_n = len(S2_features)
+        S_n = int(S2_n * K2_ratio)
+        SR_idxs = random.sample(range(0, S2_n), S_n)
+
+        S_features = S2_features[SR_idxs]
+        S_label = S2_label[SR_idxs]
+
+    def get_Subgraph(self):
         pass

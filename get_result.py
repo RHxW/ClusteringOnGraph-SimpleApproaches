@@ -3,9 +3,9 @@ import shutil
 import datetime
 
 def get_results():
-    list_file = ""
-    meta_file = ""
-    res_dir = ""
+    list_file = "F:/COGSAs/ClusteringOnGraph-SimpleApproaches/data/output/train_gcn_nlayer_1_360k_2000_gcn_feat/list.txt"
+    meta_file = "F:/COGSAs/ClusteringOnGraph-SimpleApproaches/data/output/train_gcn_nlayer_1_360k_2000_gcn_feat/tau_0.67_gcn_feat_pred_labels.txt"
+    res_dir = "F:/COGSAs/cluster_res/train_gcn_nlayer_1_360k_2000_gcn_feat/"
 
     if not os.path.exists(res_dir):
         os.mkdir(res_dir)
