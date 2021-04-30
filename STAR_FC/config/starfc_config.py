@@ -3,12 +3,14 @@ CONFIG = {
     "phase": "train",
     "data_root": "/tmp/pycharm_project_444/data/",
     "device": "cuda:0",
-    "checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_2000/checkpoint_1.pth",
+    "gcn_checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_2000/gcn_checkpoint.pth",
+    "ch_checkpoint_path": "/tmp/pycharm_project_444/data/train_gcn_nlayer_1_360k_2000/ch_checkpoint.pth",
 
     "save_output": True,
     "output_root": "/tmp/pycharm_project_444/data/output/",
 
     "epochs": 20,
+    "SR_epochs": 20,
 
     "knn": 20,
     "knn_method": "hnsw",  # hnsw=nmslib, faiss, faiss_gpu
@@ -29,8 +31,8 @@ CONFIG = {
     # spss parameter
     "M": 10,
     "N": 10,
-    "K1_ratio": 0.9,
-    "K2_ratio": 0.9,
+    "K1_ratio": 0.8,
+    "K2_ratio": 0.8,
 
     # optimizer
     "lr": 0.01,

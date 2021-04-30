@@ -1,11 +1,13 @@
 import os
 import numpy as np
 import random
+import torch
 
 from utils import (read_meta, read_probs, l2norm, fast_knns2spmat, row_normalize,
                    build_symmetric_adj, sparse_mx_to_indices_values, sparse_mx_to_torch_sparse_tensor,
                    intdict2ndarray, Timer)
 from utils.knn import build_knns_simple
+
 
 class STARFCDataset():
     def __init__(self, cfg):
@@ -128,7 +130,11 @@ class STARFCDataset():
 
         return S2_features, S2_adj, S2_lb2idx, S2_idx2lb, S2_label
 
-        # PUT SR PROCEDURE OUTSIDE!!!
+        #####################################
+        ###                               ###
+        ###  PUT SR PROCEDURE OUTSIDE!!!  ###
+        ###                               ###
+        #####################################
         # # 4. select K2 nodes from S2 as S
         # gt_label = self.gt_labels[list(S2)]
         # S_lb2idx = dict()
@@ -161,13 +167,24 @@ class STARFCDataset():
 
 class SRStrategyClass():
     # Sample Randomness Strategy
-    def __init__(self, S2_features, S2_adj, S2_lb2idx, S2_idx2lb, S2_label, K2_ratio):
-        S2_n = len(S2_features)
-        S_n = int(S2_n * K2_ratio)
-        SR_idxs = random.sample(range(0, S2_n), S_n)
+    def __init__(self, S2_adj, S2_lb2idx, S2_idx2lb, S2_label, K2_ratio):
+        self.S2_adj = S2_adj
+        self.S2_n = len(S2_idx2lb)
+        self.S2_lb2idx = S2_lb2idx
+        self.S2_idx2lb = S2_idx2lb
+        self.S2_label = S2_label
+        self.K2_ratio = K2_ratio
+        self.S_n = int(self.S2_n * self.K2_ratio)
 
-        S_features = S2_features[SR_idxs]
-        S_label = S2_label[SR_idxs]
+    def get_Subgraph(self, feature):
+        SR_idxs = random.sample(range(0, self.S2_n), self.S_n)
+        # S_feature = feature[SR_idxs]
 
-    def get_Subgraph(self):
-        pass
+        row = self.S2_adj._indices()[0, SR_idxs].tolist()
+        col = self.S2_adj._indices()[1, SR_idxs].tolist()
+
+        S_label = (self.S2_label[row] == self.S2_label[col])
+
+        S_feature = torch.cat((feature[row], feature[col]), 1)
+
+        return S_feature, S_label
