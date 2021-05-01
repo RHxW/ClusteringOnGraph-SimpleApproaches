@@ -14,7 +14,7 @@ def test_starfc(cfg):
     # model
     feature_dim = cfg["feature_dim"]
     nhid = cfg["nhid"]
-    model_gcn= GCN_STARFC(feature_dim, nhid).to(device)
+    model_gcn = GCN_STARFC(feature_dim, nhid).to(device)
     model_ch = ClassifierHead(nhid).to(device)
     loss_func = torch.nn.CrossEntropyLoss()
     gcn_checkpoint_path = cfg["gcn_checkpoint_path"]
@@ -24,12 +24,12 @@ def test_starfc(cfg):
     if os.path.exists(ch_checkpoint_path):
         model_ch.load_state_dict(torch.load(ch_checkpoint_path))
 
-
     lr = cfg["lr"]
     momentum = cfg["momentum"]
     weight_decay = cfg["weight_decay"]
     optimizer = torch.optim.SGD([{'params': model_gcn.parameters(), 'weight_decay': weight_decay},
-                           {'params': model_ch.parameters(), 'weight_decay': weight_decay}], lr=lr, momentum=momentum)
+                                 {'params': model_ch.parameters(), 'weight_decay': weight_decay}], lr=lr,
+                                momentum=momentum)
 
     epochs = cfg["epochs"]
     SR_epochs = cfg["SR_epochs"]
@@ -53,6 +53,7 @@ def test_starfc(cfg):
 
     torch.save(model_gcn.state_dict(), gcn_checkpoint_path)
     torch.save(model_ch.state_dict(), ch_checkpoint_path)
+
 
 if __name__ == "__main__":
     cfg = CONFIG
