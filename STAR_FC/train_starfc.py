@@ -7,7 +7,7 @@ from STAR_FC.dataset.starfc_dataset import STARFCDataset, SRStrategyClass
 from STAR_FC.models.gcn_starfc import GCN_STARFC, ClassifierHead
 
 
-def test_starfc(cfg):
+def train_starfc(cfg):
     dataset = STARFCDataset(cfg)
     device = cfg["device"]
 
@@ -57,4 +57,4 @@ def test_starfc(cfg):
 
 if __name__ == "__main__":
     cfg = CONFIG
-    test_starfc(cfg)
+    train_starfc(cfg)
