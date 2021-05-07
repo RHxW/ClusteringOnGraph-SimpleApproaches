@@ -42,7 +42,7 @@ def train_starfc(cfg):
         for sre in range(SR_epochs):
             x = model_gcn(S2_features, S2_adj)
             S_feature, S_label = SRSC.get_Subgraph(x)
-            S_pred = model_ch(S_feature)
+            S_pred = model_ch(S_feature)  # obtain the edge scores
             S_label = torch.from_numpy(S_label).to(torch.long).to(device)
             loss = loss_func(S_pred, S_label)
             loss_val = loss.item()
