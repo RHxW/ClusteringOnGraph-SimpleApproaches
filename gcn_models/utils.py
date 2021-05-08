@@ -38,14 +38,35 @@ class GraphConv(nn.Module):
         assert (feat_dim == self.in_dim)
         agg_feats = self.agg(features, A)
         cat_feats = torch.cat([features, agg_feats], dim=-1)
-        if features.dim() == 2:
-            op = 'nd,df->nf'
-        elif features.dim() == 3:
-            op = 'bnd,df->bnf'
-        else:
-            raise RuntimeError('the dimension of features should be 2 or 3')
-        out = torch.einsum(op, (cat_feats, self.weight))
+        # if features.dim() == 2:
+        #     op = 'nd,df->nf'
+        # elif features.dim() == 3:
+        #     op = 'bnd,df->bnf'
+        # else:
+        #     raise RuntimeError('the dimension of features should be 2 or 3')
+        # out = torch.einsum(op, (cat_feats, self.weight))
+        out = torch.mm(cat_feats, self.weight)
         out = F.relu(out + self.bias)
         if self.dropout > 0:
             out = F.dropout(out, self.dropout, training=self.training)
         return out
+
+# class GraphConvFC(nn.Module):
+#     def __init__(self, in_dim, out_dim, agg, dropout=0):
+#         super(GraphConvFC, self).__init__()
+#         self.in_dim = in_dim
+#         self.out_dim = out_dim
+#         self.fc = nn.Linear(in_dim * 2, out_dim, bias=True)
+#         self.agg = agg()
+#         self.dropout = dropout
+#
+#     def forward(self, features, A):
+#         feat_dim = features.shape[-1]
+#         assert (feat_dim == self.in_dim)
+#         agg_feats = self.agg(features, A)
+#         cat_feats = torch.cat([features, agg_feats], dim=-1)
+#         out = self.fc(cat_feats)
+#         out = F.relu(out)
+#         if self.dropout > 0:
+#             out = F.dropout(out, self.dropout, training=self.training)
+#         return out

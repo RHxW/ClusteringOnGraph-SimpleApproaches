@@ -1,6 +1,6 @@
 from torch import nn
 
-from gcn_models.utils import GraphConv, MeanAggregator
+from gcn_models.utils import GraphConv, MeanAggregator, GraphConvFC
 
 
 class GCN_STARFC(nn.Module):

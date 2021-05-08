@@ -97,8 +97,6 @@ def test_gcnv(cfg):
 
     # save clustering results
     if cfg["save_output"]:
-        print("USING GCN FEATURE!!!")
-        print("-" * 50)
         oname_meta = '{}_gcn_feat'.format(cfg["proj_name"])
         opath_pred_labels = osp.join(
             cfg["output_root"], oname_meta, 'tau_{}_pred_labels.txt'.format(cfg["tau_0"]))
@@ -121,6 +119,8 @@ def test_gcnv(cfg):
         print("No true label.")
 
     if cfg["use_gcn_feat"]:
+        print("USING GCN FEATURE!!!")
+        print("-" * 50)
         knn_method = cfg["knn_method"]
         k = cfg["knn"]
         # rebuild knn graph with gcn features
