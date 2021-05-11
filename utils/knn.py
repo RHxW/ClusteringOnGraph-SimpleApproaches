@@ -7,6 +7,7 @@ from tqdm import tqdm
 from utils import (load_data, dump_data, mkdir_if_no_exists, Timer)
 from .faiss_search import faiss_search_knn
 from scipy.sparse import csr_matrix
+import faiss
 
 __all__ = [
     'knn_brute_force', 'knn_hnsw', 'knn_faiss', 'knn_faiss_gpu', 'knns2spmat',
@@ -409,14 +410,21 @@ class knn_faiss_gpu(knn):
                 print('[faiss_gpu] read knns from {}'.format(knn_ofn))
                 self.knns = np.load(knn_ofn)['data']
             else:
-                dists, nbrs = faiss_search_knn(feats,
-                                               k=k,
-                                               nprobe=nprobe,
-                                               num_process=num_process,
-                                               is_precise=is_precise,
-                                               sort=sort,
-                                               verbose=False)
+                # dists, nbrs = faiss_search_knn(feats,
+                #                                k=k,
+                #                                nprobe=nprobe,
+                #                                num_process=num_process,
+                #                                is_precise=is_precise,
+                #                                sort=sort,
+                #                                verbose=False)
+                d = feats.shape[1]
+                index = faiss.IndexFlatIP(d)
+                index = faiss.index_cpu_to_all_gpus(index)
+                index.add(feats)
+                dists, nbrs = index.search(feats, k)
 
+                # 这里还要转一下，转成hnsw(nmslib)的knn格式，很费劲没必要，可以直接改成返回 dists和nbrs
+                # 而且faiss和nmslib的顺序是反的（因为一个是sim，一个是1-sim）
                 self.knns = [(np.array(nbr, dtype=np.int32),
                               np.array(dist, dtype=np.float32))
                              for nbr, dist in zip(nbrs, dists)]
