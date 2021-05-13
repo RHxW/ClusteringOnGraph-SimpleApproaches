@@ -146,4 +146,4 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
             peaks[i].append(nbr_idx)
             if len(dist2peak[i]) >= max_conn:
                 break
-    return dist2peak, peaks
+    return dist2peak, peaks  # peaks是每个节点邻居中confidence（中心概率）比它大的节点的idx，dist2peak是对应的距离

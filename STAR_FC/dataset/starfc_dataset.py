@@ -68,7 +68,7 @@ class STARFCDataset():
             # self.size = 1  # take the entire graph as input
 
         with Timer('Compute center feature'):
-            self.center_feat = np.zeros((self.cls_num, self.features.shape[1])).astype(np.float32)
+            self.center_feat = np.zeros((self.cls_num, self.features.shape[1])).astype(np.float32)  # [C, d]
             lbs = list(self.lb2idxs.keys())  # in case of uncontinuous ids
             for i in range(self.cls_num):
                 _id = lbs[i]

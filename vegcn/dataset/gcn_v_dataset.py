@@ -74,7 +74,7 @@ class GCNVDataset(object):
             # build symmetric adjacency matrix
             adj = build_symmetric_adj(adj, self_loop=True)  # 加上自身比较 相似度1
             adj = row_normalize(adj)  # 归一化
-            if self.save_decomposed_adj:
+            if self.save_decomposed_adj:  # False
                 adj = sparse_mx_to_indices_values(adj)
                 self.adj_indices, self.adj_values, self.adj_shape = adj
             else:
