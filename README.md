@@ -1,16 +1,16 @@
 # ClusteringOnGraph-SimpleApproaches
 
 COGSAs:
-simplified version of clustering algorithms with GCNs(basically face clustering).
+**simplified** version of face clustering algorithms with GCNs.
 
 ## What's the difference?
 * less encapsulation, higher readability and easier to modify your own code
 
 ## What's new?
-* add evaluate method `purity&diverse` and `V-measure`
+* add evaluate method `purity&diverse` and `V-measure`.
 
 ## Requirements
 * Python >= 3.6
 * Pytorch >= 0.40
-* faiss
+* faiss/nmslib
 * sklearn
