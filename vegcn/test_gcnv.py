@@ -11,10 +11,11 @@ from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
 from utils import (sparse_mx_to_torch_sparse_tensor, list2dict, write_meta,
-                   write_feat, mkdir_if_no_exists, rm_suffix, build_knns,
-                   knns2ordered_nbrs, BasicDataset, Timer)
+                   write_feat, mkdir_if_no_exists, rm_suffix,
+                   knns2ordered_nbrs, BasicDataset, Timer, l2norm)
 from evaluation import evaluate, accuracy
 from utils.knn import build_knns_simple
+from utils.get_knn import build_knns
 from evaluation.Purity_Diverse_V import get_DPV_measure
 from evaluation.metrics import pairwise
 
@@ -124,7 +125,9 @@ def test_gcnv(cfg):
         knn_method = cfg["knn_method"]
         k = cfg["knn"]
         # rebuild knn graph with gcn features
-        knns = build_knns_simple(gcn_feat, knn_method, k)
+        # knns = build_knns_simple(gcn_feat, knn_method, k)
+        gcn_feat = l2norm(gcn_feat)
+        knns = build_knns(gcn_feat, knn_method, k)
 
         dists, nbrs = knns2ordered_nbrs(knns)
         pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, pred_confs, cfg["max_conn"])

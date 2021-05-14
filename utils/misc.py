@@ -87,15 +87,19 @@ def read_probs(path, inst_num, feat_dim, dtype=np.float32, verbose=False):
 
 
 def read_meta(fn_meta, verbose=True):
-    lb2idxs = {}
-    idx2lb = {}
+    # lb2idxs = {}
+    # idx2lb = {}
+    # with open(fn_meta) as f:
+    #     for idx, x in enumerate(f.readlines()):
+    #         lb = int(x.strip())
+    #         if lb not in lb2idxs:
+    #             lb2idxs[lb] = []
+    #         lb2idxs[lb] += [idx]
+    #         idx2lb[idx] = lb
+
     with open(fn_meta) as f:
-        for idx, x in enumerate(f.readlines()):
-            lb = int(x.strip())
-            if lb not in lb2idxs:
-                lb2idxs[lb] = []
-            lb2idxs[lb] += [idx]
-            idx2lb[idx] = lb
+        label_lns = f.readlines()
+    lb2idxs, idx2lb = get_meta_from_label_lns(label_lns)
 
     inst_num = len(idx2lb)
     cls_num = len(lb2idxs)
@@ -103,6 +107,17 @@ def read_meta(fn_meta, verbose=True):
         print('[{}] #cls: {}, #inst: {}'.format(fn_meta, cls_num, inst_num))
     return lb2idxs, idx2lb
 
+def get_meta_from_label_lns(label_lns):
+    lb2idxs = {}
+    idx2lb = {}
+    for idx, x in enumerate(label_lns):
+        lb = int(x.strip())
+        if lb not in lb2idxs:
+            lb2idxs[lb] = []
+        lb2idxs[lb] += [idx]
+        idx2lb[idx] = lb
+
+    return lb2idxs, idx2lb
 
 def write_meta(ofn, idx2lb, inst_num=None):
     if len(idx2lb) == 0:
