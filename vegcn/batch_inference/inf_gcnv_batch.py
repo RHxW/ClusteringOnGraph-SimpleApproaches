@@ -1,20 +1,17 @@
 import os
 import torch
 import numpy as np
-import os.path as osp
-import torch.nn.functional as F
 
 from vegcn.models.gcn_v import GCN_V
 from vegcn.config.gcnv_config import CONFIG
-from vegcn.confidence import confidence, confidence_to_peaks
+from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
-from utils import (sparse_mx_to_torch_sparse_tensor, list2dict, read_meta, write_meta, mkdir_if_no_exists,
+from utils import (sparse_mx_to_torch_sparse_tensor, list2dict,
                    intdict2ndarray, knns2ordered_nbrs, Timer, read_probs, l2norm, fast_knns2spmat,
-                   build_symmetric_adj, row_normalize, get_meta_from_label_lns)
+                   build_symmetric_adj, row_normalize)
 from utils.get_knn import build_knns
-from evaluation.Purity_Diverse_V import get_DPV_measure
-from evaluation.metrics import pairwise
+
 
 def get_batch_idxs(n, batch_num, min_num_per_batch=10):
     """
@@ -33,65 +30,27 @@ def get_batch_idxs(n, batch_num, min_num_per_batch=10):
         batch_idxs.append(idx_all[i * num_per_batch:(i + 1) * num_per_batch])
     return batch_idxs
 
+
 class GCNVBatchFeeder():
-    def __init__(self, cfg, batch_num):
-        self.phase = cfg["phase"]
-        self.data_root = cfg["data_root"]
-
-        self.proj_name = cfg["proj_name"]
-        self.proj_path = os.path.join(self.data_root, self.proj_name)
-        self.proj_path = os.path.join(self.proj_path, self.phase)
-        print("Phase: %s" % self.phase)
-        print("Project Path: %s" % self.proj_path)
-        print("-" * 50)
-        self.feat_path = os.path.join(self.proj_path, "feature.npy")
-        self.label_path = os.path.join(self.proj_path, "label.txt")
-        self.knn_graph_path = os.path.join(self.proj_path, "%s_k_%d.npz" % (cfg["knn_method"], cfg["knn"]))
-
+    def __init__(self, cfg, batch_num, feature_path):
         self.k = cfg['knn']
         self.knn_method = cfg["knn_method"]
         self.feature_dim = cfg["feature_dim"]
         self.is_norm_feat = cfg["is_norm_feat"]
-        self.save_decomposed_adj = cfg["save_decomposed_adj"]
 
-        self.cut_edge_sim_th = cfg["cut_edge_sim_th"]
-        self.max_conn = cfg["max_conn"]
-        self.conf_metric = cfg["conf_metric"]
-
-        with Timer('read meta and feature'):
-            if os.path.exists(self.label_path):
-                self.lb2idxs, self.idx2lb = read_meta(self.label_path)
-                self.inst_num = len(self.idx2lb)  # 样本数量
-                self.gt_labels = intdict2ndarray(self.idx2lb)  # 真实标签
-                self.ignore_label = False
-            else:
-                if self.phase == "train":
-                    raise RuntimeError("Training procedure must have label!")
-                # self.inst_num = -1
-                # self.gt_labels = None
-                # self.ignore_label = True
-
-            if not os.path.exists(self.feat_path):
+        with Timer('read feature'):
+            if not os.path.exists(feature_path):
                 raise RuntimeError("feat_path not exists!!!")
-            self.features = read_probs(self.feat_path, self.inst_num,
-                                       self.feature_dim)
+            self.features = read_probs(feature_path, self.inst_num, self.feature_dim)
             if self.is_norm_feat:
                 self.features = l2norm(self.features)
-            if self.inst_num == -1:
-                self.inst_num = self.features.shape[0]
-            self.size = 1  # take the entire graph as input
+            self.inst_num = self.features.shape[0]
 
         self.batch_num = batch_num
         self.batch_idxs = get_batch_idxs(self.inst_num, self.batch_num)
 
-        with Timer('read knn graph'):
-            if os.path.exists(self.knn_graph_path):
-                self.knns = np.load(self.knn_graph_path)['data']
-            else:
-                print('knn_graph_path does not exist: {}'.format(self.knn_graph_path))
-                # knn_prefix = self.proj_path
-                # knns = build_knns(knn_prefix, self.features, self.knn_method, self.k)  # shape=(n, 2, k) OLD
-                self.knns = build_knns(self.features, self.knn_method, self.k)  # shape=(n, 2, k) NEW
+        with Timer('build knn graph'):
+            self.knns = build_knns(self.features, self.knn_method, self.k)  # shape=(n, 2, k) NEW
 
     def __getitem__(self, b):
         idx_focus = self.batch_idxs[b]
@@ -105,7 +64,6 @@ class GCNVBatchFeeder():
         features_all = self.features[idx_all]
         return features_all, knn_all, idx_all, n
 
-
     def __len__(self):
         return self.batch_num
 
@@ -117,19 +75,14 @@ class GCNVInferenceBatch():
 
         self.k = cfg['knn']
         self.knn_method = cfg["knn_method"]
-        self.feature_dim = cfg["feature_dim"]
-        self.is_norm_feat = cfg["is_norm_feat"]
-        self.save_decomposed_adj = cfg["save_decomposed_adj"]
 
         self.cut_edge_sim_th = cfg["cut_edge_sim_th"]
         self.max_conn = cfg["max_conn"]
         self.tau_gcn = cfg["tau"]
-        self.conf_metric = cfg["conf_metric"]
 
         # model
         self.feature_dim = cfg["feature_dim"]
         self.nhid = cfg["nhid"]
-        # nlayer = cfg["nlayer"]
         self.nclass = cfg["nclass"]
         self.dropout = cfg["dropout"]
         self.model = GCN_V(self.feature_dim, self.nhid, self.nclass, self.dropout).to(self.device)
@@ -144,7 +97,7 @@ class GCNVInferenceBatch():
         self.N = N
         self.cur_count = 0
         # post progress
-        self.pred_conf = np.zeros([N,])
+        self.pred_conf = np.zeros([N, ])
         self.gcn_feature = np.zeros([N, 1024])
 
     def inference(self, features, knns_origin, idx_origin, n):

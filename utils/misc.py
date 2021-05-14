@@ -77,7 +77,7 @@ def read_probs(path, inst_num, feat_dim, dtype=np.float32, verbose=False):
             probs = probs.reshape(inst_num, feat_dim)
     elif path.endswith('npy'):
         # probs = np.load(path)[:20000]
-        probs = np.load(path)
+        probs = np.load(path).astype(dtype)
     else:
         return None  # TODO
 
