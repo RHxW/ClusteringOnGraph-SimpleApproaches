@@ -123,6 +123,7 @@ class GCNVInferenceBatch():
 
         self.cut_edge_sim_th = cfg["cut_edge_sim_th"]
         self.max_conn = cfg["max_conn"]
+        self.tau_gcn = cfg["tau"]
         self.conf_metric = cfg["conf_metric"]
 
         # model
@@ -201,3 +202,11 @@ class GCNVInferenceBatch():
         if self.cur_count < self.N:
             print("the batch inference is not over")
             return
+
+        self.gcn_feature = l2norm(self.gcn_feature)
+        knns = build_knns(self.gcn_feature, self.knn_method, self.k)
+
+        dists, nbrs = knns2ordered_nbrs(knns)
+        pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, self.pred_conf, self.max_conn)
+        pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, self.tau_gcn, self.N)
+        return pred_labels
