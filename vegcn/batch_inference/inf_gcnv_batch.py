@@ -10,6 +10,7 @@ from utils import (sparse_mx_to_torch_sparse_tensor, list2dict,
                    intdict2ndarray, knns2ordered_nbrs, Timer, read_probs, l2norm, fast_knns2spmat,
                    build_symmetric_adj, row_normalize)
 from utils.get_knn import build_knns
+from utils.knn import fast_knns2spmat_batch
 
 
 def get_batch_idxs(n, batch_num, min_num_per_batch=10):
@@ -20,13 +21,16 @@ def get_batch_idxs(n, batch_num, min_num_per_batch=10):
     :param min_num_per_batch:
     :return:
     """
-    if batch_num * min_num_per_batch > batch_num:
+    if batch_num == 1:
+        return [list(range(n))]
+    if batch_num * min_num_per_batch > n:
         raise RuntimeError("batch_num too big")
     idx_all = list(range(n))
     num_per_batch = int(n / batch_num + 0.5)
     batch_idxs = []
-    for i in range(batch_num):
+    for i in range(batch_num - 1):
         batch_idxs.append(idx_all[i * num_per_batch:(i + 1) * num_per_batch])
+    batch_idxs.append(idx_all[(batch_num - 1) * num_per_batch:])
     return batch_idxs
 
 
@@ -40,7 +44,8 @@ class GCNVBatchFeeder():
         with Timer('read feature'):
             if not os.path.exists(feature_path):
                 raise RuntimeError("feat_path not exists!!!")
-            self.features = read_probs(feature_path, self.inst_num, self.feature_dim)
+            # self.features = read_probs(feature_path, self.inst_num, self.feature_dim)
+            self.features = np.load(feature_path).astype(np.float32)
             if self.is_norm_feat:
                 self.features = l2norm(self.features)
             self.inst_num = self.features.shape[0]
@@ -55,10 +60,16 @@ class GCNVBatchFeeder():
         idx_focus = self.batch_idxs[b]
         n = len(idx_focus)
         knn_focus = [self.knns[i] for i in idx_focus]  # [N, 2, k]
-        idx_others = set()  # no duplicate idx
+        idx_others = []  # no duplicate idx
         for knn_ in knn_focus:
-            idx_others.update(set(knn_[0]))
-        idx_all = idx_focus + list(idx_others)
+            idx_others += list(knn_[0])
+        idx_all = idx_focus
+        idx_all_set = set(idx_all)
+        for idx_ot in idx_others:
+            if idx_ot in idx_all_set:
+                continue
+            idx_all.append(idx_ot)
+            idx_all_set.add(idx_ot)
         knn_all = [self.knns[i] for i in idx_all]
         features_all = self.features[idx_all]
         return features_all, knn_all, idx_all, n
@@ -96,8 +107,8 @@ class GCNVInferenceBatch():
         self.N = N
         self.cur_count = 0
         # post progress
-        self.pred_conf = np.zeros([N, ])
-        self.gcn_feature = np.zeros([N, 1024])
+        self.pred_conf = np.zeros([N, ]).astype(np.float32)
+        self.gcn_feature = np.zeros([N, 1024]).astype(np.float32)
 
     def inference(self, features, knns_origin, idx_origin, n):
         """
@@ -111,9 +122,9 @@ class GCNVInferenceBatch():
             2. gcn_feat: 这n个特征的gcn特征(1024)
         """
         if self.cur_count >= self.N:
-            print("all batches are over, use .. to get the final cluster result.")
+            print("all batches are over, use `.get_cluster_result()` to get the final cluster result.")
             return
-        assert len(features) == len(knns_origin) == len(idx_origin)
+        # assert len(features) == len(knns_origin) == len(idx_origin)
         m = len(features)
 
         # build index mapping
@@ -125,8 +136,9 @@ class GCNVInferenceBatch():
             idx_new2ori[i] = idx_origin[i]
 
         # alter knns_origin to knns_new(change the index from old to new)
+        knns_focus = knns_origin[:n]
         knns_new = []
-        for knn_o in knns_origin:
+        for knn_o in knns_focus:
             nbrs_o = list(knn_o[0])
             nbrs_new = []
             for nbr in nbrs_o:
@@ -135,10 +147,11 @@ class GCNVInferenceBatch():
             knns_new.append(knn_n)
 
         features = torch.tensor(features, dtype=torch.float32).to(self.device)
-        Adj = fast_knns2spmat(knns_new, self.k, self.cut_edge_sim_th, use_sim=True)
+        Adj = fast_knns2spmat_batch(knns_new, m, self.cut_edge_sim_th, use_sim=True)
         # build symmetric adjacency matrix
         Adj = build_symmetric_adj(Adj, self_loop=True)  # 加上自身比较 相似度1
         Adj = row_normalize(Adj)  # 归一化
+        Adj = sparse_mx_to_torch_sparse_tensor(Adj).to(self.device)
 
         output, gcn_feat = self.model(features, Adj, output_feat=True)
 
@@ -161,4 +174,4 @@ class GCNVInferenceBatch():
         dists, nbrs = knns2ordered_nbrs(knns)
         pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, self.pred_conf, self.max_conn)
         pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, self.tau_gcn, self.N)
-        return pred_labels
+        return pred_labels, self.gcn_feature
