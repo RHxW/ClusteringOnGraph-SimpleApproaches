@@ -3,7 +3,6 @@ import torch
 import numpy as np
 
 from vegcn.models.gcn_v import GCN_V
-from vegcn.config.gcnv_config import CONFIG
 from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
