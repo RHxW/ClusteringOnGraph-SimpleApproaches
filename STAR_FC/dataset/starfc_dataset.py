@@ -6,7 +6,7 @@ import torch
 from utils import (read_meta, read_probs, l2norm, fast_knns2spmat, row_normalize,
                    build_symmetric_adj, sparse_mx_to_indices_values, sparse_mx_to_torch_sparse_tensor,
                    intdict2ndarray, Timer)
-from utils.knn import build_knns_simple
+from utils.get_knn import build_knns
 
 
 class STARFCDataset():
@@ -77,7 +77,7 @@ class STARFCDataset():
 
         # construct center_feat knn(k=self.N)
         with Timer("Construct center feature k-NN"):
-            self.center_knn = build_knns_simple(self.center_feat, self.knn_method, self.N)
+            self.center_knn = build_knns(self.center_feat, self.knn_method, self.N)
 
         print('feature shape: {}, k: {}, norm_feat: {}'.format(self.features.shape, self.k, self.is_norm_feat))
 
@@ -99,7 +99,7 @@ class STARFCDataset():
             S1.update(set(cls_knn[0]))
         s1n = len(S1)
 
-        # 3. select K1 clusters(idx) from S1 as S2
+        # 3. randomly select K1 clusters(idx) from S1 as S2
         K1 = max(int(s1n * self.K1_ratio), 1)
         S2 = set(random.sample(S1, K1))
 
@@ -121,7 +121,7 @@ class STARFCDataset():
             else:
                 S2_lb2idx[_lb] = [i]
 
-        S2_knn = build_knns_simple(S2_features, self.knn_method, self.k)
+        S2_knn = build_knns(S2_features, self.knn_method, self.k)
         S2_adj = fast_knns2spmat(S2_knn, self.k, self.cut_edge_sim_th, use_sim=True)
         # build symmetric adjacency matrix
         S2_adj = build_symmetric_adj(S2_adj, self_loop=True)
@@ -167,6 +167,7 @@ class STARFCDataset():
 
 class SRStrategyClass():
     # Sample Randomness Strategy
+    # randomly select K2 nodes in S2
     def __init__(self, S2_adj, S2_lb2idx, S2_idx2lb, S2_label, K2_ratio):
         self.S2_adj = S2_adj
         self.S2_n = len(S2_idx2lb)
@@ -174,16 +175,16 @@ class SRStrategyClass():
         self.S2_idx2lb = S2_idx2lb
         self.S2_label = S2_label
         self.K2_ratio = K2_ratio
-        self.S_n = int(self.S2_n * self.K2_ratio)
+        self.K2 = int(self.S2_n * self.K2_ratio)
 
     def get_Subgraph(self, feature):
-        SR_idxs = random.sample(range(0, self.S2_n), self.S_n)
+        SR_idxs = random.sample(range(0, self.S2_n), self.K2)
         # S_feature = feature[SR_idxs]
 
         row = self.S2_adj._indices()[0, SR_idxs].tolist()
         col = self.S2_adj._indices()[1, SR_idxs].tolist()
 
-        S_label = (self.S2_label[row] == self.S2_label[col])
+        S_label = (self.S2_label[row] == self.S2_label[col])  # 极大概率全是1，因为knn的结果前k个极有可能是同一类，因此adj中出现的也基本都是同一类
 
         S_feature = torch.cat((feature[row], feature[col]), 1)
 
