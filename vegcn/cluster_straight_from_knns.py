@@ -17,11 +17,18 @@ from evaluation.metrics import pairwise
 
 
 def inference_gcnv(cfg, feature_path):
+    """
+    不经过网络直接从原始特征构建的knn计算结果（pred_confs使用随机数）
+    :param cfg:
+    :param feature_path:
+    :return:
+    """
     torch.set_grad_enabled(False)
     k = cfg['knn']
     knn_method = cfg["knn_method"]
-    # feature_dim = cfg["feature_dim"]
     is_norm_feat = cfg["is_norm_feat"]
+    max_conn = cfg["max_conn"]
+    tau_gcn = cfg["tau"]
 
     with Timer('read feature'):
         if not os.path.exists(feature_path):
@@ -31,73 +38,40 @@ def inference_gcnv(cfg, feature_path):
             features = l2norm(features)
         inst_num = features.shape[0]
 
+    # features = np.ascontiguousarray(features[:, :128])
+    # use PCA
+    # from sklearn.decomposition import PCA
+    # pca = PCA(n_components=128)
+    # pca.fit(features)
+    # features = pca.transform(features)
 
     with Timer('build knn graph'):
         knns = build_knns(features, knn_method, k)  # shape=(n, 2, k) NEW
 
-    device = cfg["device"]
-
-    cut_edge_sim_th = cfg["cut_edge_sim_th"]
-    max_conn = cfg["max_conn"]
-    tau_gcn = cfg["tau"]
-
-    # model
-    feature_dim = cfg["feature_dim"]
-    nhid = cfg["nhid"]
-    nclass = cfg["nclass"]
-    dropout = cfg["dropout"]
-    model = GCN_V(feature_dim, nhid, nclass, dropout).to(device)
-    print("Model: ", model)
-    # load checkpoint
-    checkpoint_path = cfg["checkpoint_path"]
-    if os.path.exists(checkpoint_path):
-        model.load_state_dict(torch.load(checkpoint_path))
-
-    model.eval()
-
-    features = torch.tensor(features, dtype=torch.float32).to(device)
-    Adj = fast_knns2spmat(knns, k, cut_edge_sim_th, use_sim=True)
-    # build symmetric adjacency matrix
-    Adj = build_symmetric_adj(Adj, self_loop=True)  # 加上自身比较 相似度1
-    Adj = row_normalize(Adj)  # 归一化
-    Adj = sparse_mx_to_torch_sparse_tensor(Adj).to(device)
-
-    output, gcn_features = model(features, Adj, output_feat=True)
-
-    pred_confs = output.detach().cpu().numpy()
-    gcn_features = gcn_features.detach().cpu().numpy()
-
-    # use new feature
-    # new_features = gcn_features[:, :128]
-    # gcn_features = np.ascontiguousarray(new_features)
-
-    # use PCA
-    # from sklearn.decomposition import PCA
-    # pca = PCA(n_components=128)
-    # pca.fit(gcn_features)
-    # gcn_features = pca.transform(gcn_features)
-
-    gcn_features = l2norm(gcn_features)
-    knns = build_knns(gcn_features, knn_method, k)
+    pred_confs = np.random.rand(inst_num)
 
     dists, nbrs = knns2ordered_nbrs(knns)
-    pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, pred_confs, max_conn)
-    pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, tau_gcn, inst_num)
-    return pred_labels, gcn_features
+    # pred_dist2peak, pred_peaks = confidence_to_peaks(dists, nbrs, pred_confs, max_conn)
+    num, _ = dists.shape
+    pred_dist2peak = {i: [] for i in range(num)}
+    pred_peaks = {i: [] for i in range(num)}
+    for i, nbr in enumerate(nbrs):
+        pred_dist2peak[i] = list(dists[i])
+        pred_peaks[i] = list(nbr)
 
+
+    pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, 0.6, inst_num)
+    return pred_labels
 
 if __name__ == "__main__":
     cfg = CONFIG
     data_root = "/tmp/pycharm_project_444/data/inf_data/idnum_1500/"
     feature_path = data_root + "feature.npy"
-    pred_labels, gcn_features = inference_gcnv(cfg, feature_path)
-    print(gcn_features)
+    pred_labels = inference_gcnv(cfg, feature_path)
     save_path = data_root + "res/"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
-    feat_save_path = save_path + "gcnv_inf_res.npy"
     label_save_path = save_path + "pred_label.txt"
-    np.save(feat_save_path, gcn_features)
 
     pl_lns = []
     for _lbl in pred_labels:
