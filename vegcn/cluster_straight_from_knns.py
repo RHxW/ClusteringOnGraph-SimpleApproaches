@@ -40,10 +40,10 @@ def inference_gcnv(cfg, feature_path):
 
     # features = np.ascontiguousarray(features[:, :128])
     # use PCA
-    # from sklearn.decomposition import PCA
-    # pca = PCA(n_components=128)
-    # pca.fit(features)
-    # features = pca.transform(features)
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=256)
+    pca.fit(features)
+    features = pca.transform(features)
 
     with Timer('build knn graph'):
         knns = build_knns(features, knn_method, k)  # shape=(n, 2, k) NEW
@@ -60,12 +60,12 @@ def inference_gcnv(cfg, feature_path):
         pred_peaks[i] = list(nbr)
 
 
-    pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, 0.6, inst_num)
+    pred_labels = peaks_to_labels(pred_peaks, pred_dist2peak, 0.58, inst_num)  # threshold HERE!
     return pred_labels
 
 if __name__ == "__main__":
     cfg = CONFIG
-    data_root = "/tmp/pycharm_project_444/data/inf_data/idnum_1500/"
+    data_root = "/tmp/pycharm_project_444/data/inf_data/nanjing/"
     feature_path = data_root + "feature.npy"
     pred_labels = inference_gcnv(cfg, feature_path)
     save_path = data_root + "res/"
