@@ -44,7 +44,6 @@ def set_random_seed(seed, cuda=False):
 
 
 def l2norm(vec):
-
     vec /= np.linalg.norm(vec, axis=1).reshape(-1, 1)
     return vec
 
@@ -107,6 +106,7 @@ def read_meta(fn_meta, verbose=True):
         print('[{}] #cls: {}, #inst: {}'.format(fn_meta, cls_num, inst_num))
     return lb2idxs, idx2lb
 
+
 def get_meta_from_label_lns(label_lns):
     lb2idxs = {}
     idx2lb = {}
@@ -118,6 +118,7 @@ def get_meta_from_label_lns(label_lns):
         idx2lb[idx] = lb
 
     return lb2idxs, idx2lb
+
 
 def write_meta(ofn, idx2lb, inst_num=None):
     if len(idx2lb) == 0:

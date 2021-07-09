@@ -118,7 +118,7 @@ def fast_knns2spmat(knns, k, th_sim=0.7, use_sim=False, fill_value=None):
         knns = ndarr
     nbrs = knns[:, 0, :]
     dists = knns[:, 1, :]
-    assert -eps <= dists.min() <= dists.max() <= 1 + eps, "min: {}, max: {}".format(dists.min(), dists.max())
+    # assert -eps <= dists.min() <= dists.max() <= 1 + eps, "min: {}, max: {}".format(dists.min(), dists.max())
     if use_sim:
         sims = 1. - dists
     else:
@@ -137,6 +137,54 @@ def fast_knns2spmat(knns, k, th_sim=0.7, use_sim=False, fill_value=None):
     spmat = csr_matrix((data, (row, col)), shape=(n, n))  # 图象数*图象数
     return spmat
 
+def fast_knns2spmat_batch(knns_focus, M, th_sim=0.7, use_sim=False, fill_value=None):
+    # convert knns to symmetric sparse matrix BATCH!!!
+    eps = 1e-5
+    n = len(knns_focus)  # batch图像数量
+    if isinstance(knns_focus, list):
+        knns_focus = np.array(knns_focus)
+    # if len(knns.shape) == 2:
+    #     # knns saved by hnsw has different shape
+    #     n = len(knns)
+    #     ndarr = np.ones([n, 2, k])
+    #     ndarr[:, 0, :] = -1  # assign unknown dist to 1 and nbr to -1
+    #     for i, (nbr, dist) in enumerate(knns):
+    #         size = len(nbr)
+    #         assert size == len(dist)
+    #         ndarr[i, 0, :size] = nbr[:size]
+    #         ndarr[i, 1, :size] = dist[:size]
+    #     knns = ndarr
+    nbrs = knns_focus[:, 0, :]
+    dists = knns_focus[:, 1, :]
+    assert -eps <= dists.min() <= dists.max() <= 1 + eps, "min: {}, max: {}".format(dists.min(), dists.max())
+    if use_sim:
+        sims = 1. - dists
+    else:
+        sims = dists
+    if fill_value is not None:
+        print('[fast_knns2spmat] edge fill value:', fill_value)
+        sims.fill(fill_value)
+    row, col = np.where(sims >= th_sim)
+    # remove the self-loop
+    idxs = np.where(row != nbrs[row, col])
+    row = row[idxs]
+    col = col[idxs]
+    data = sims[row, col]
+    col = nbrs[row, col]  # convert to absolute column
+    # add others
+    col = col.tolist()
+    row = row.tolist()
+    data = data.tolist()
+    for i in range(n, M):
+        col.append(i)
+        row.append(i)
+        data.append(0.0)  # 因为没用到（作为邻居出现），所以补1和补0是一样的
+    col = np.array(col)
+    row = np.array(row)
+    data = np.array(data)
+    assert len(row) == len(col) == len(data)
+    spmat = csr_matrix((data, (row, col)), shape=(M, M))  # 图象数*图象数
+    return spmat
 
 def knns2sub_spmat(idxs, knns, th_sim=0.7, use_sim=False):
     # convert knns to symmetric sparse sub-matrix
