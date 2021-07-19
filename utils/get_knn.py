@@ -4,9 +4,8 @@ import multiprocessing
 import numpy as np
 from utils import Timer
 
-def build_knns(feats,
-               knn_method,
-               k):
+
+def build_knns(feats, knn_method, k):
     with Timer('build knn'):
         if knn_method == "hnsw":
             knn = knn_hnsw(feats, k)
@@ -34,15 +33,17 @@ def knn_hnsw(feats, k, print_progress=True):
     knns = index.knnQueryBatch(feats, k=k, num_threads=thread_count)
     return knns
 
+
 def knn_faiss_cpu(feats, k):
     d = feats.shape[1]
     index = faiss.IndexFlatIP(d)
     index.add(feats)
     sims, nbrs = index.search(feats, k=k)
     knn = [(np.array(nbr, dtype=np.int32),
-      np.array(1-dist, dtype=np.float32))
-     for nbr, dist in zip(nbrs, sims)]
+            np.array(1 - dist, dtype=np.float32))
+           for nbr, dist in zip(nbrs, sims)]
     return knn
+
 
 def knn_faiss_gpu_single(feats, k):
     d = feats.shape[1]
@@ -57,6 +58,7 @@ def knn_faiss_gpu_single(feats, k):
            for nbr, dist in zip(nbrs, sims)]
     return knn
 
+
 def knn_faiss_gpu_all(feats, k):
     if faiss.get_num_gpus() < 1:
         print("faiss gpu not capable!!!")
@@ -70,5 +72,3 @@ def knn_faiss_gpu_all(feats, k):
             np.array(1 - dist, dtype=np.float32))
            for nbr, dist in zip(nbrs, sims)]
     return knn
-
-

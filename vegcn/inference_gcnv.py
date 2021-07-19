@@ -15,6 +15,7 @@ from vegcn.config.gcnv_config import CONFIG
 from evaluation.Purity_Diverse_V import get_DPV_measure
 from evaluation.metrics import pairwise
 
+# torch.set_printoptions(precision=16)
 
 def inference_gcnv(cfg, feature_path):
     torch.set_grad_enabled(False)
@@ -51,11 +52,12 @@ def inference_gcnv(cfg, feature_path):
     # load checkpoint
     checkpoint_path = cfg["checkpoint_path"]
     if os.path.exists(checkpoint_path):
-        model.load_state_dict(torch.load(checkpoint_path))
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
 
     model.eval()
 
     features = torch.tensor(features, dtype=torch.float32).to(device)
+    # features = torch.from_numpy(features).to(device)
     Adj = fast_knns2spmat(knns, k, cut_edge_sim_th, use_sim=True)
     # build symmetric adjacency matrix
     Adj = build_symmetric_adj(Adj, self_loop=True)  # 加上自身比较 相似度1
@@ -88,10 +90,11 @@ def inference_gcnv(cfg, feature_path):
 
 if __name__ == "__main__":
     cfg = CONFIG
-    data_root = "/tmp/pycharm_project_444/data/inf_data/idnum_1500/"
+    data_root = "/tmp/pycharm_project_444/data/inf_data/lucheng_OD/q_0.55/"
+    # data_root = "/tmp/pycharm_project_444/data/inf_data/nanjing/targets/1/0.55/"
     feature_path = data_root + "feature.npy"
     pred_labels, gcn_features = inference_gcnv(cfg, feature_path)
-    print(gcn_features)
+    # print(gcn_features)
     save_path = data_root + "res/"
     if not os.path.exists(save_path):
         os.mkdir(save_path)
@@ -99,11 +102,15 @@ if __name__ == "__main__":
     label_save_path = save_path + "pred_label.txt"
     np.save(feat_save_path, gcn_features)
 
+    labels = set()
     pl_lns = []
     for _lbl in pred_labels:
         pl_lns.append("%d\n" % int(_lbl))
+        labels.add(_lbl)
     with open(label_save_path, "w") as f:
         f.writelines(list(pl_lns))
+
+    print("total class count: %d\n" % len(labels))
 
     # evaluation
     label_path = data_root + "label.txt"

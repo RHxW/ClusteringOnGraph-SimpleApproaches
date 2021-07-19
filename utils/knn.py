@@ -5,7 +5,7 @@ import multiprocessing
 from tqdm import tqdm
 
 from utils import (load_data, dump_data, mkdir_if_no_exists, Timer)
-from .faiss_search import faiss_search_knn
+# from .faiss_search import faiss_search_knn
 from scipy.sparse import csr_matrix
 import faiss
 

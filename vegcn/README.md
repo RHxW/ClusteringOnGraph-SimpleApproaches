@@ -19,7 +19,7 @@ And the funny thing is, the second way is better. Which means the GCNV method di
 
 Here is my test result:
 
-|\|GCNV(th=0.62)|origin feature(th=0.55)|
+| \ |GCNV(th=0.62)|origin feature(th=0.55)|
 |:---:|---:|---:|
 |avg_pre|0.998407|**0.998453**|
 |avg_rec|0.946603|**0.958298**|
@@ -32,7 +32,7 @@ The code is in:
 ### a weaker model
 I tested on a much weaker recognition model(unconstrained face dataset, private), and the results goes:
 
-|\|GCNV|origin feature|
+| \ |GCNV|origin feature|
 |:---:|---:|---:|
 |avg_pre|0.993829|**0.994098**|
 |avg_rec|**0.344495**|0.285632|
@@ -44,4 +44,4 @@ So it looks like that the GCNV does help on a weak model.
 I also tried dimension reduction on GCNV features and original features.
 And the conclusion is:
 
-GCNV features is much than the origin ones. And the lower the dimension, the better GCNV features outperforms.
+GCNV features is much better than the origin ones. And the lower the dimension goes, the better GCNV features outperforms.
