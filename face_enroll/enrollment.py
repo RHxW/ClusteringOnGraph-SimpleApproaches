@@ -9,7 +9,7 @@ from vegcn.config.gcnv_config import CONFIG as gcnv_cfg
 from FaceDRTools.FaceRec.FRAPI import FRAPI
 from FaceDRTools.FaceQ.FQAPI import FQAPI
 from FaceDRTools.config import CONFIG
-from enroll_utils import get_avg_feature_by_list, get_avg_feature, get_weight_feature_by_list
+from face_enroll.enroll_utils import get_avg_feature_by_list, get_avg_feature, get_weight_feature_by_list
 
 
 class FaceEnrollmentINC():
@@ -117,7 +117,7 @@ class FaceEnrollmentINC():
             self.singles.append(total_pic_paths[sid])
         end_time = datetime.datetime.now()
         tc = end_time - start_time
-        print("enrollment time consume: ", tc)
+        print("face_enroll time consume: ", tc)
 
     def get_ID_faces(self, method=1):
         # 获取每个id的人脸图片（用于聚类）

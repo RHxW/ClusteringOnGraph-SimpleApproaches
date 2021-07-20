@@ -1,22 +1,21 @@
-from enrollment.enrollment import FaceEnrollmentINC
-from enrollment.utils import *
+from face_enroll.enrollment import FaceEnrollmentINC
+from face_enroll.enroll_utils import *
 import random
 import datetime
 import time
-from enrollment.eval import fscore, get_label_eval
+from face_enroll.eval import fscore, get_label_eval
 
 
 def test(delta=500):
-    src_root = "/home/songhui/FaceClusterEnrollment/src/"
-    DB_root = "/home/songhui/FaceClusterEnrollment/src/test_res/"
+    DB_root = "/home/songhui/COGSAs/face_enroll/test_res/"
     if not os.path.exists(DB_root):
         os.mkdir(DB_root)
     DB_root += datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "/"
     os.mkdir(DB_root)
-    enroll_API = FaceEnrollmentINC(tmp_DB_root=DB_root, clustering_method=1, get_id_face_method=2, device="cuda:3")
+    enroll_API = FaceEnrollmentINC(tmp_DB_root=DB_root, clustering_method=1, get_id_face_method=2)
     # test_id_root = "/home/songhui/FaceClusterEnrollment/facepic_82id_align/"
     test_id_root = "/home/songhui/FaceClusterEnrollment/facepic_100115_align_526/"
-    tmp_root = "/home/songhui/FaceClusterEnrollment/test_img_tmp/"
+    tmp_root = "/home/songhui/COGSAs/face_enroll/enroll_tmp_data/"  # 将待入库图片复制到这个临时目录中
     if os.path.exists(tmp_root):
         shutil.rmtree(tmp_root)
     dir_copy(test_id_root, tmp_root)
