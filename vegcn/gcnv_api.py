@@ -5,8 +5,9 @@ from vegcn.models.gcn_v import GCN_V
 from vegcn.confidence import confidence_to_peaks
 from vegcn.deduce import peaks_to_labels
 
-from utils import (sparse_mx_to_torch_sparse_tensor, knns2ordered_nbrs, Timer, l2norm, fast_knns2spmat,
-                   build_symmetric_adj, row_normalize)
+from utils.adjacency import sparse_mx_to_torch_sparse_tensor, build_symmetric_adj, row_normalize
+from utils.knn import knns2ordered_nbrs, fast_knns2spmat
+from utils.misc import Timer, l2norm
 from utils.get_knn import build_knns
 
 class GCNV_API():

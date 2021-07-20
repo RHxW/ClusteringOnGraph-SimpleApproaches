@@ -3,7 +3,7 @@ import numpy as np
 import torch.backends.cudnn as cudnn
 import cv2
 
-from FaceRec.model_irse import IR_SE_50
+from .model_irse import IR_SE_50
 
 
 class FRAPI():

@@ -3,7 +3,7 @@ import numpy as np
 import torch.backends.cudnn as cudnn
 import cv2
 
-from FaceQ.faceQnet import faceQnet
+from .faceQnet import faceQnet
 
 class FQAPI():
     def __init__(self, cfg):

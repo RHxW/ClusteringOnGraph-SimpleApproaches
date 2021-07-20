@@ -9,11 +9,11 @@ from vegcn.config.gcnv_config import CONFIG as gcnv_cfg
 from FaceDRTools.FaceRec.FRAPI import FRAPI
 from FaceDRTools.FaceQ.FQAPI import FQAPI
 from FaceDRTools.config import CONFIG
-from enrollment.utils import get_avg_feature_by_list, get_avg_feature, get_weight_feature_by_list
+from enroll_utils import get_avg_feature_by_list, get_avg_feature, get_weight_feature_by_list
 
 
 class FaceEnrollmentINC():
-    def __init__(self, tmp_DB_root:str, clustering_method: int = 1, get_id_face_method:int = 2, device="cuda:0"):
+    def __init__(self, tmp_DB_root:str, clustering_method: int = 1, get_id_face_method:int = 2):
         self.tmp_DB_root = tmp_DB_root
         if not os.path.exists(self.tmp_DB_root):
             os.mkdir(self.tmp_DB_root)
@@ -27,7 +27,6 @@ class FaceEnrollmentINC():
         if get_id_face_method not in [1, 2, 3, 4]:
             raise RuntimeError("get_id_face_method error!")
         self.get_id_face_method = get_id_face_method  # 获取id中心特征方法：1: 质量最高（测试效果最好）  2: 全部的平均特征  3: 高中低的平均特征  4: 高中低特征的加权平均
-        self.device = device
         self.face_cfg = CONFIG()
 
         self.FRAPI = FRAPI(self.face_cfg)
@@ -44,6 +43,8 @@ class FaceEnrollmentINC():
         if os.path.exists(self.singles_feature_dir):
             shutil.rmtree(self.singles_feature_dir)
         os.mkdir(self.singles_feature_dir)
+
+        self.singles = []  # 未入库图片path列表
 
         self.ids = set()
         self.id_pics = dict()
@@ -93,6 +94,7 @@ class FaceEnrollmentINC():
                 _feat.tofile(_feat_path)
             img_feats.append(_feat)
 
+
         for i in range(len(self.singles), N):
             img_path = img_paths[i]
             _feat = self.FRAPI.get_feature(img_path).numpy()
@@ -105,6 +107,7 @@ class FaceEnrollmentINC():
 
         # feature_to_bin(self.bin_path, total_pic_feats)
         # get_list(self.list_path, total_pic_paths)
+        total_pic_feats = np.array(total_pic_feats).reshape(-1, 512).astype("float32")
         cluster_id_res = self.cluster_API.cluster(total_pic_feats)
 
         # 入库
