@@ -13,14 +13,14 @@ from face_enroll.enroll_utils import get_avg_feature_by_list, get_avg_feature, g
 
 
 class FaceEnrollmentINC():
-    def __init__(self, tmp_DB_root:str, clustering_method: int = 1, get_id_face_method:int = 2):
-        self.tmp_DB_root = tmp_DB_root
+    def __init__(self, tmp_DB_root: str, clustering_method: int = 1, get_id_face_method: int = 2):
+        self.tmp_DB_root = tmp_DB_root  # 保存id的dir，里面有-1（single），-2（低质量）和features文件夹
         if not os.path.exists(self.tmp_DB_root):
             os.mkdir(self.tmp_DB_root)
         if self.tmp_DB_root[-1] != "/":
             self.tmp_DB_root += "/"
 
-        if clustering_method not in [1,]:
+        if clustering_method not in [1, ]:
             raise RuntimeError("clustering_method error!")
         self.clustering_method = clustering_method  # 聚类方法：1. GCNV
 
@@ -33,9 +33,9 @@ class FaceEnrollmentINC():
         self.FQAPI = FQAPI(self.face_cfg)
         self.q_th = 0.44
 
-        # 入库图片按id保存feature（按质量最高指定中心特征的方案不保存特征）
+        # 入库图片按id保存feature（每种方案都保存特征）
         self.feature_root = self.tmp_DB_root + "features/"
-        if self.get_id_face_method >= 2:
+        if self.get_id_face_method >= 1:
             os.mkdir(self.feature_root)
 
         # 临时存放单独图片（未入库成功的，-1类别）的特征
@@ -59,7 +59,6 @@ class FaceEnrollmentINC():
             for _img in os.listdir(self.tmp_DB_root + _id + "/"):
                 self.id_pics[int(_id)].append(self.tmp_DB_root + _id + "/" + _img)
         self.last_id = 1
-
 
         self.cluster_cfg = None
         if self.clustering_method == 1:
@@ -94,7 +93,6 @@ class FaceEnrollmentINC():
                 _feat.tofile(_feat_path)
             img_feats.append(_feat)
 
-
         for i in range(len(self.singles), N):
             img_path = img_paths[i]
             _feat = self.FRAPI.get_feature(img_path).numpy()
@@ -102,7 +100,7 @@ class FaceEnrollmentINC():
 
         ids, id_pic_path, id_pic_feat = self.get_ID_faces(self.get_id_face_method)
         total_ids = ids + [-1] * len(img_paths)  # 原始id，已入库的对应类别为id，未入库的对应类别为-1
-        total_pic_paths = id_pic_path + img_paths
+        total_pic_paths = id_pic_path + img_paths  # 已入库id的path为"/xxx/0"，待入库图片的path为"/xxx/yyyy.jpg"
         total_pic_feats = id_pic_feat + img_feats
 
         # feature_to_bin(self.bin_path, total_pic_feats)
@@ -137,22 +135,56 @@ class FaceEnrollmentINC():
         else:
             return
 
-    def get_ID_faces_1(self):
-        # 1: 取质量分数top1
+    def get_ID_faces_1_(self):
+        # 1: 取质量分数top1 （不保存特征文件）
         ids = list(self.id_pics.keys())
         id_pic_path = []
         id_pic_feat = []
         for _id in ids:  # 获取每个id下的质量最高者
             _pics = self.id_pics[_id]
-            _pics.sort(reverse=True)
             if not _pics:
                 id_pic_path.append(None)
                 id_pic_feat.append(None)
                 self.id_pics.pop(_id)
                 continue
+            _pics.sort(reverse=True)
             id_pic_path.append(_pics[0])
             id_pic_feat.append(self.FRAPI.get_feature(_pics[0]).numpy())  # 每次都要重新提特征
 
+        return ids, id_pic_path, id_pic_feat
+
+    def get_ID_faces_1(self):
+        # 1: 取质量分数top1
+        # 修改为保存所有特征（feature文件夹）
+        ids = list(self.id_pics.keys())
+        id_pic_path = []
+        id_pic_feat = []
+        for _id in ids:
+            _id_path = self.tmp_DB_root + str(_id) + "/"
+            _pics = os.listdir(_id_path)
+            _feat_path = self.feature_root + str(_id) + "/"
+            if str(_id) not in os.listdir(self.feature_root):
+                os.mkdir(_feat_path)
+            _feats = os.listdir(_feat_path)
+            if len(_pics) != len(_feats):
+                # 找到未提特征的图片，将特征加入到features文件夹对应的id中
+                for p in _pics:
+                    pname = p.split(".")[0]
+                    if pname in _feats:
+                        continue
+                    new_feature = self.FRAPI.get_feature(_id_path + p)
+                    np.array(new_feature).tofile(_feat_path + pname)
+
+            # _pics = self.id_pics[_id]
+            feat_files = os.listdir(_feat_path)
+            if not _pics:
+                id_pic_path.append(None)
+                id_pic_feat.append(None)
+                self.id_pics.pop(_id)
+                continue
+            feat_files.sort(reverse=True)
+            id_pic_path.append(feat_files[0])
+            id_pic_feat.append(np.expand_dims(np.fromfile(_feat_path + feat_files[0], dtype=np.float32), 0))  # 每次都要重新提特征
         return ids, id_pic_path, id_pic_feat
 
     def get_ID_faces_2(self):
@@ -208,7 +240,7 @@ class FaceEnrollmentINC():
             if _N > 3:
                 paths = []
                 paths.append(paths_all[0])  # 质量排序第一个
-                paths.append(paths_all[int(_N//2)])  # 质量排序中间的
+                paths.append(paths_all[int(_N // 2)])  # 质量排序中间的
                 paths.append(paths_all[-1])  # 质量排序最后一个
             else:
                 paths = paths_all
