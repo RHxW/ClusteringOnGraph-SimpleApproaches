@@ -140,7 +140,7 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
         nbr_conf = confidence[nbr]
         for j, c in enumerate(nbr_conf):
             nbr_idx = nbr[j]
-            if i == nbr_idx or c <= confidence[i]:
+            if i == nbr_idx or c < confidence[i]:  # 将 <= 改为 <，这样在只有一个人的时候不会出现聚不到一起的情况
                 continue
             dist2peak[i].append(dists[i, j])
             peaks[i].append(nbr_idx)

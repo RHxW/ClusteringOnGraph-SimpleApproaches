@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import random
 
-from utils import neighbour_sample
+from graphSAGE.utils import neighbour_sample
 
 class MeanAggregator(nn.Module):
     def __init__(self):
