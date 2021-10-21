@@ -82,6 +82,7 @@ def getTransMatrix(fpoints, std_points):
 def alignFace(fimage, fmarks, imgSize, scale=1.0):
     assert fimage.ndim >= 2
     assert fmarks.shape[0] == 5 and fmarks.shape[1] == 2
+    assert len(imgSize) == 2
     h, w = fimage.shape[:2]
     scale_x = float(w)/float(96)
     scale_y = float(h)/float(112)
@@ -92,12 +93,12 @@ def alignFace(fimage, fmarks, imgSize, scale=1.0):
     33.5493, 92.3655,
     62.7299, 92.2041
 
-    ], dtype=np.float).reshape(5, 2)
+    ], dtype=np.float32).reshape(5, 2)
     # print(std_marks)
 
     std_marks *= [scale_x, scale_y]
     tranMatrix = getTransMatrix(std_marks, fmarks)
-    tranMatrix = tranMatrix.astype(np.float)
+    tranMatrix = tranMatrix.astype(np.float32)
 
     if tranMatrix is not None:
         if scale == 1.0:
@@ -111,9 +112,7 @@ def alignFace(fimage, fmarks, imgSize, scale=1.0):
     else:
         return None, None
 
-    res_image = cv2.resize(res_image,
-                           dsize=imgSize,
-                           interpolation=cv2.INTER_CUBIC)
+    res_image = cv2.resize(res_image, dsize=tuple(imgSize), interpolation=cv2.INTER_CUBIC)
     return res_image
 
 
@@ -129,13 +128,13 @@ if __name__ == '__main__':
 
     coord5points = np.array(coord5points, dtype=np.float64)
 
-    face_path = r'F:\\Data\\facepic\\facepic_good_1dir\\0.jpg'
+    face_path = r'F:\facepic\0.jpg'
     face_img = cv2.imread(face_path, cv2.IMREAD_COLOR)
-    aligned_face1 = warp_im(face_img, face_landmarks, coord5points, imgSize)
+    aligned_face1 = warp_im(face_img, face_landmarks, imgSize)
     aligned_face = alignFace(face_img, face_landmarks, imgSize, scale=1.0)
 
-    cat_align = np.ones([112, 196, 3], dtype=np.uint8) * 0
-    cat_align[:, :96, :] = aligned_face1
-    cat_align[:, 100:196, :] = aligned_face
+    cat_align = np.ones([196, 112, 3], dtype=np.uint8) * 0
+    cat_align[:96, :, :] = aligned_face1
+    cat_align[100:196, :, :] = aligned_face
     cv2.imshow('a', cat_align)
     cv2.waitKey()

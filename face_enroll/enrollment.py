@@ -8,12 +8,18 @@ from vegcn.gcnv_api import GCNV_API
 from vegcn.config.gcnv_config import CONFIG as gcnv_cfg
 from FaceDRTools.FaceRec.FRAPI import FRAPI
 from FaceDRTools.FaceQ.FQAPI import FQAPI
-from FaceDRTools.config import CONFIG
+from FaceDRTools.Config.config import CONFIG
 from face_enroll.enroll_utils import get_avg_feature_by_list, get_avg_feature, get_weight_feature_by_list
 
 
 class FaceEnrollmentINC():
-    def __init__(self, tmp_DB_root: str, clustering_method: int = 1, get_id_face_method: int = 2):
+    def __init__(self, tmp_DB_root: str, clustering_method: int = 1, get_id_face_method: int = 2, q_th: float = 0.5):
+        """
+
+        :param tmp_DB_root: 保存结果id的dir，里面有-1（single），-2（低质量）和features文件夹
+        :param clustering_method: 聚类方法：1. GCNV
+        :param get_id_face_method: 获取id中心特征方法：1: 质量最高（测试效果最好）  2: 全部的平均特征  3: 高中低的平均特征  4: 高中低特征的加权平均
+        """
         self.tmp_DB_root = tmp_DB_root  # 保存id的dir，里面有-1（single），-2（低质量）和features文件夹
         if not os.path.exists(self.tmp_DB_root):
             os.mkdir(self.tmp_DB_root)
@@ -31,7 +37,9 @@ class FaceEnrollmentINC():
 
         self.FRAPI = FRAPI(self.face_cfg)
         self.FQAPI = FQAPI(self.face_cfg)
-        self.q_th = 0.44
+        if q_th >= 1 or q_th <= 0:
+            raise RuntimeError("Invalid quality threshold!")
+        self.q_th = q_th
 
         # 入库图片按id保存feature（每种方案都保存特征）
         self.feature_root = self.tmp_DB_root + "features/"
@@ -184,7 +192,8 @@ class FaceEnrollmentINC():
                 continue
             feat_files.sort(reverse=True)
             id_pic_path.append(feat_files[0])
-            id_pic_feat.append(np.expand_dims(np.fromfile(_feat_path + feat_files[0], dtype=np.float32), 0))  # 每次都要重新提特征
+            id_pic_feat.append(
+                np.expand_dims(np.fromfile(_feat_path + feat_files[0], dtype=np.float32), 0))  # 每次都要重新提特征
         return ids, id_pic_path, id_pic_feat
 
     def get_ID_faces_2(self):
