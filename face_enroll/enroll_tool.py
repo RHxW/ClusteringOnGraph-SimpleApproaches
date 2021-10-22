@@ -14,11 +14,17 @@ def enroll_tool_1dir(delta: int, res_name: str = ''):
     os.mkdir(DB_root)
     enroll_API = FaceEnrollmentINC(tmp_DB_root=DB_root, clustering_method=1, get_id_face_method=4, q_th=0.1)
     # test_id_root = "/home/songhui/FaceClusterEnrollment/facepic_82id_align/"
-    test_pic_root = "/home/songhui/wyh/face_data/20210624_yk/face_align/"
+    test_pic_root = "/home/songhui/wyh/face_data/20210624_yk/face_align/"  # 入库程序会把这个文件夹下的人脸图片删掉，需要额外准备一个临时文件夹
+    tmp_root = "/home/songhui/COGSAs/face_enroll/enroll_tmp_data/"  # 将待入库图片复制到这个临时目录中
+    if os.path.exists(tmp_root):
+        shutil.rmtree(tmp_root)
+    if tmp_root[-1] != '/':
+        tmp_root += '/'
+    dir_copy(test_pic_root, tmp_root)
 
     test_imgs = []
-    for pname in os.listdir(test_pic_root):
-        test_imgs.append(test_pic_root + pname)
+    for pname in os.listdir(tmp_root):
+        test_imgs.append(tmp_root + pname)
     if delta <= 0:
         delta = len(test_imgs) + 1
     while test_imgs:
@@ -44,7 +50,7 @@ def enroll_tool_1dir(delta: int, res_name: str = ''):
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
-    enroll_tool_1dir(-1)
+    enroll_tool_1dir(-1, '20210624_yk')
     end_time = datetime.datetime.now()
     time_consume = end_time - start_time
     print("-" * 50)
