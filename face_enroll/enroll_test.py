@@ -51,6 +51,11 @@ def test(delta:int, res_name: str = ''):
         if len(os.listdir(DB_root + id_dir + "/")) == 0:
             shutil.rmtree(DB_root + id_dir + "/")
 
+    # 删除临时保存的feature
+    feature_root = enroll_API.feature_root
+    if os.path.exists(feature_root):
+        shutil.rmtree(feature_root)
+
     get_singularity_dirs(DB_root)
 
     label_true, label_pred, valid, q_all = get_label_eval(test_id_root, DB_root)

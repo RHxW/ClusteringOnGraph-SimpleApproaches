@@ -12,9 +12,9 @@ def enroll_tool_1dir(delta: int, res_name: str = ''):
         res_name += '_'
     DB_root += res_name + datetime.datetime.now().strftime("%Y%m%d%H%M%S") + "/"
     os.mkdir(DB_root)
-    enroll_API = FaceEnrollmentINC(tmp_DB_root=DB_root, clustering_method=1, get_id_face_method=4, q_th=0.1)
+    enroll_API = FaceEnrollmentINC(tmp_DB_root=DB_root, clustering_method=1, get_id_face_method=3, q_th=0.1)
     # test_id_root = "/home/songhui/FaceClusterEnrollment/facepic_82id_align/"
-    test_pic_root = "/home/songhui/wyh/face_data/20210624_yk/face_align/"  # 入库程序会把这个文件夹下的人脸图片删掉，需要额外准备一个临时文件夹
+    test_pic_root = "/home/songhui/wyh/face_data/yuemiao_211022/face_align/"  # 入库程序会把这个文件夹下的人脸图片删掉，需要额外准备一个临时文件夹
     tmp_root = "/home/songhui/COGSAs/face_enroll/enroll_tmp_data/"  # 将待入库图片复制到这个临时目录中
     if os.path.exists(tmp_root):
         shutil.rmtree(tmp_root)
@@ -45,12 +45,17 @@ def enroll_tool_1dir(delta: int, res_name: str = ''):
         if len(os.listdir(DB_root + id_dir + "/")) == 0:
             shutil.rmtree(DB_root + id_dir + "/")
 
+    # 删除临时保存的feature
+    feature_root = enroll_API.feature_root
+    if os.path.exists(feature_root):
+        shutil.rmtree(feature_root)
+
     get_singularity_dirs(DB_root)
 
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
-    enroll_tool_1dir(-1, '20210624_yk')
+    enroll_tool_1dir(2000, 'yuemiao_211022')
     end_time = datetime.datetime.now()
     time_consume = end_time - start_time
     print("-" * 50)
