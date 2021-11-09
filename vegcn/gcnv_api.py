@@ -45,7 +45,7 @@ class GCNV_API():
         inst_num = features.shape[0]
 
         with Timer('build knn graph'):
-            knns = build_knns(features, self.knn_method, self.k)  # shape=(n, 2, k) NEW
+            knns = build_knns(features, self.knn_method, self.k)  # shape=(n, 2, k) NEW knn里保存的是距离和索引
 
         features = torch.tensor(features, dtype=torch.float32).to(self.device)
         # features = torch.from_numpy(features).to(device)

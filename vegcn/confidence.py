@@ -13,11 +13,11 @@ def density(dists, radius=0.3, use_weight=True):
 
     num, _ = dists.shape
     if use_weight:
-        density = np.zeros((num, ), dtype=np.float32)
+        density = np.zeros((num,), dtype=np.float32)
         for r, c in zip(row, col):
             density[r] += 1 - dists[r, c]
     else:
-        density = np.zeros((num, ), dtype=np.int32)
+        density = np.zeros((num,), dtype=np.int32)
         for k, g in groupby(row):
             density[k] = len(list(g))
     return density
@@ -26,8 +26,8 @@ def density(dists, radius=0.3, use_weight=True):
 def s_nbr(dists, nbrs, idx2lb, **kwargs):
     ''' use supervised confidence defined on neighborhood
     '''
-    num, _ = dists.shape    # num: 数据总数, _: knn-k
-    conf = np.zeros((num, ), dtype=np.float32)
+    num, _ = dists.shape  # num: 数据总数, _: knn-k
+    conf = np.zeros((num,), dtype=np.float32)
     contain_neg = 0
     for i, (nbr, dist) in enumerate(zip(nbrs, dists)):
         lb = idx2lb[i]  # 真实类别
@@ -49,7 +49,7 @@ def s_nbr_size_norm(dists, nbrs, idx2lb, **kwargs):
     ''' use supervised confidence defined on neighborhood (norm by size)
     '''
     num, _ = dists.shape
-    conf = np.zeros((num, ), dtype=np.float32)
+    conf = np.zeros((num,), dtype=np.float32)
     contain_neg = 0
     max_size = 0
     for i, (nbr, dist) in enumerate(zip(nbrs, dists)):
@@ -76,7 +76,7 @@ def s_avg(feats, idx2lb, lb2idxs, **kwargs):
     ''' use average similarity of intra-nodes
     '''
     num = len(idx2lb)
-    conf = np.zeros((num, ), dtype=np.float32)
+    conf = np.zeros((num,), dtype=np.float32)
     for i in range(num):
         lb = idx2lb[i]
         idxs = lb2idxs[lb]
@@ -95,7 +95,7 @@ def s_center(feats, idx2lb, lb2idxs, **kwargs):
     ''' use similarity of average feature of intra-nodes
     '''
     num = len(idx2lb)
-    conf = np.zeros((num, ), dtype=np.float32)
+    conf = np.zeros((num,), dtype=np.float32)
     for i in range(num):
         lb = idx2lb[i]
         idxs = lb2idxs[lb]
@@ -128,9 +128,18 @@ def confidence(metric='s_nbr', **kwargs):
 
 
 def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
+    """
+
+    :param dists: knn图的近邻距离
+    :param nbrs: knn图的近邻索引
+    :param confidence: gcnv预测的置信度
+    :param max_conn:
+    :return:
+    """
     # Note that dists has been sorted in ascending order
     assert dists.shape[0] == confidence.shape[0]
     assert dists.shape == nbrs.shape
+    conf_eps = 1e-4
 
     num, _ = dists.shape
     dist2peak = {i: [] for i in range(num)}
@@ -138,9 +147,17 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
 
     for i, nbr in tqdm(enumerate(nbrs)):
         nbr_conf = confidence[nbr]
+        # i：当前idx
+        # nbr：当前对象的近邻们（k个）
+        # nbr_conf：当前对象的预测置信度
         for j, c in enumerate(nbr_conf):
             nbr_idx = nbr[j]
-            if i == nbr_idx or c < confidence[i]:  # 将 <= 改为 <，这样在只有一个人的时候不会出现聚不到一起的情况
+            if i == nbr_idx or c < (confidence[i] - conf_eps):  # 将 <= 改为 <，这样在只有一个人的时候不会出现聚不到一起的情况
+                # 这里的意思是：如果j节点的置信度小于当前i节点的置信度（或者j节点就是i节点），就跳过j节点；是为了寻找每个节点关联的最高置信度节点！！！
+                # c就是当前对象的（gcnv）预测置信度
+                # 这里有问题，因为这个<的判断的随机性，会导致一模一样的两张图片不一定聚到一起
+                # 两个数一样，在比较`c < confidence[i]`的时候结果不稳定，有的时候True有的时候False
+                # 因此引入一个`conf_eps`，用于稳定比较结果
                 continue
             dist2peak[i].append(dists[i, j])
             peaks[i].append(nbr_idx)

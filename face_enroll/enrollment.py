@@ -80,7 +80,23 @@ class FaceEnrollmentINC():
         if type(img_paths) != list:
             raise RuntimeWarning("'img_paths' must be a list of paths")
 
-        img_paths = list(set(self.singles + img_paths))
+        # 预先过滤低质量图片（之前是在self.get_cluster_result中）
+        low_quality_dir = self.tmp_DB_root + "-2/"
+        if not os.path.exists(low_quality_dir):
+            os.mkdir(low_quality_dir)
+        img_paths_quality_valid = []
+        for i in range(len(img_paths)):
+            img_path = img_paths[i]
+            q = self.FQAPI.get_q_score(img_path)
+            if q < self.q_th:
+                img_name = img_path.split("/")[-1]
+                new_name = ("%.4f_" % q)[2:] + img_name
+                shutil.move(img_path, low_quality_dir + new_name)
+            else:
+                img_paths_quality_valid.append(img_path)
+
+        img_paths = list(set(self.singles + img_paths_quality_valid))
+        # img_paths.sort()
 
         if len(img_paths) == 0:
             return
@@ -101,7 +117,7 @@ class FaceEnrollmentINC():
                 _feat.tofile(_feat_path)
             img_feats.append(_feat)
 
-        for i in range(len(self.singles), N):
+        for i in range(len(self.singles), N):  # 对所有图片提特征
             img_path = img_paths[i]
             _feat = self.FRAPI.get_feature(img_path).numpy()
             img_feats.append(_feat)  # 特征
@@ -109,7 +125,7 @@ class FaceEnrollmentINC():
         ids, id_pic_path, id_pic_feat = self.get_ID_faces(self.get_id_face_method)
         total_ids = ids + [-1] * len(img_paths)  # 原始id，已入库的对应类别为id，未入库的对应类别为-1
         total_pic_paths = id_pic_path + img_paths  # 已入库id的path为"/xxx/0"，待入库图片的path为"/xxx/yyyy.jpg"
-        total_pic_feats = id_pic_feat + img_feats
+        total_pic_feats = id_pic_feat + img_feats  # 已有的id feature + 新入库的图片feature
 
         # feature_to_bin(self.bin_path, total_pic_feats)
         # get_list(self.list_path, total_pic_paths)
@@ -359,7 +375,7 @@ class FaceEnrollmentINC():
             o_id = origin_ids[idx]
             img_path = pic_paths[idx]
             if o_id == -1:  # 新图片入库
-                q = self.FQAPI.get_q_score(img_path)
+                q = self.FQAPI.get_q_score(img_path)  # 质量过滤（后修改为在self.batch_enrollment中进行过滤，即在入库前先进行过滤）
                 img_name = img_path.split("/")[-1]
                 new_name = ("%.4f_" % q)[2:] + img_name
                 if q < self.q_th:
