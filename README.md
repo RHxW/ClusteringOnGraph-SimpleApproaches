@@ -20,3 +20,4 @@ to outperform the GCNV method. More detail ---> `./vegcn/README.md` :)
 * Pytorch >= 0.40
 * faiss(cpu/gpu)/nmslib
 * sklearn
+* [FaceDRTools](https://github.com/RHxW/FaceDRTools)
