@@ -158,6 +158,7 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
                 # 这里有问题，因为这个<的判断的随机性，会导致一模一样的两张图片不一定聚到一起
                 # 两个数一样，在比较`c < confidence[i]`的时候结果不稳定，有的时候True有的时候False
                 # 因此引入一个`conf_eps`，用于稳定比较结果
+                # 如果希望将仅有两张一模一样图片的id排除掉，则将conf_eps设置为0即可（它们会出现在-1类别中）
                 continue
             dist2peak[i].append(dists[i, j])
             peaks[i].append(nbr_idx)
