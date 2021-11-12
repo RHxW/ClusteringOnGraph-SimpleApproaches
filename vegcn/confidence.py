@@ -139,7 +139,7 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
     # Note that dists has been sorted in ascending order
     assert dists.shape[0] == confidence.shape[0]
     assert dists.shape == nbrs.shape
-    conf_eps = 1e-4
+    conf_eps = 1e-6
 
     num, _ = dists.shape
     dist2peak = {i: [] for i in range(num)}
@@ -152,13 +152,11 @@ def confidence_to_peaks(dists, nbrs, confidence, max_conn=1):
         # nbr_conf：当前对象的预测置信度
         for j, c in enumerate(nbr_conf):
             nbr_idx = nbr[j]
-            if i == nbr_idx or c < (confidence[i] - conf_eps):  # 将 <= 改为 <，这样在只有一个人的时候不会出现聚不到一起的情况
+            if i == nbr_idx or c < (confidence[i] - conf_eps):  # 将 <= 改为 <，这样在一个人只有两张一模一样图片的时候不会出现聚不到一起的情况
                 # 这里的意思是：如果j节点的置信度小于当前i节点的置信度（或者j节点就是i节点），就跳过j节点；是为了寻找每个节点关联的最高置信度节点！！！
                 # c就是当前对象的（gcnv）预测置信度
-                # 这里有问题，因为这个<的判断的随机性，会导致一模一样的两张图片不一定聚到一起
-                # 两个数一样，在比较`c < confidence[i]`的时候结果不稳定，有的时候True有的时候False
-                # 因此引入一个`conf_eps`，用于稳定比较结果
-                # 如果希望将仅有两张一模一样图片的id排除掉，则将conf_eps设置为0即可（它们会出现在-1类别中）
+                # 这里有问题，如果两个数一样，在比较`c < confidence[i]`的时候结果不稳定，有的时候True有的时候False
+                # 因此引入一个`conf_eps`，用于稳定比较结果（几乎没有影响！！！）
                 continue
             dist2peak[i].append(dists[i, j])
             peaks[i].append(nbr_idx)

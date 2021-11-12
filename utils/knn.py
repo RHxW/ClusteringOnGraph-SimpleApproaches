@@ -117,7 +117,7 @@ def fast_knns2spmat(knns, k, th_sim=0.7, use_sim=False, fill_value=None):
             ndarr[i, 1, :size] = dist[:size]
         knns = ndarr
     nbrs = knns[:, 0, :]
-    dists = knns[:, 1, :]
+    dists = knns[:, 1, :]  # cosine distance [-1,1]??? TODO
     # assert -eps <= dists.min() <= dists.max() <= 1 + eps, "min: {}, max: {}".format(dists.min(), dists.max())
     if use_sim:
         sims = 1. - dists
