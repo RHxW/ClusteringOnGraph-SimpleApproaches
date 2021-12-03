@@ -12,6 +12,9 @@ from utils import (l2norm, fast_knns2spmat, row_normalize,
 from utils.get_knn import build_knns
 from utils.deduce import edge_to_connected_graph
 
+from evaluation.Purity_Diverse_V import get_DPV_measure
+from evaluation.metrics import pairwise
+
 
 def test_starfc(cfg, edge_pred_batch_num):
     torch.set_grad_enabled(False)
@@ -101,17 +104,6 @@ def test_starfc(cfg, edge_pred_batch_num):
         id2 = np.array([pair_b[idx].tolist()])
         edges.extend(np.concatenate([id1, id2], 0).transpose().tolist())
 
-    # new_feat = torch.cat([x[pair_a], x[pair_b]])
-    # pred = model_ch(new_feat)
-    #
-    # pred = softmax(pred)
-    # score_ = pred[:, 1]
-    # idx = np.where(score_ > threshold1)[0].tolist()
-    #
-    # id1 = np.array([pair_a[idx].tolist()])
-    # id2 = np.array([pair_b[idx].tolist()])
-    # edges = np.concatenate([id1, id2], 0).transpose().tolist()
-
     # 2. Graph refinement: try to identify the edges which can not be removed directly using edge scores with node intimacy (NI)
     # use node intimacy to represent the edge score and remove those edges whose score is below t2
     edges_count = len(edges)
@@ -126,14 +118,25 @@ def test_starfc(cfg, edge_pred_batch_num):
     edges = edges.tolist()
 
     for i in range(len(edges)):
-        if ((link_num[edges[i][0]]) != 0) & ((link_num[edges[i][1]]) != 0):
+        if link_num[edges[i][0]] * link_num[edges[i][1]] != 0:  # 不是孤立节点（孤立节点怎么处理）
             if max((share_num[i]) / link_num[edges[i][0]], (share_num[i]) / link_num[edges[i][1]]) > threshold2:
                 edges_new.append(edges[i])
-        if i % 10000000 == 0:
-            print(i)
 
-    pre_labels = edge_to_connected_graph(edges_new, edges_count)
+    pred_labels = edge_to_connected_graph(edges_new, inst_num)
 
+    # evaluation
+    lb2idxs, idx2lb = dataset.lb2idxs, dataset.idx2lb
+    inst_num = len(idx2lb)  # 样本数量
+    label_true = intdict2ndarray(idx2lb)  # 真实标签
+
+    avg_pre, avg_rec, fscore = pairwise(label_true, pred_labels)
+    print("result class count: %d." % len(set(pred_labels)))
+    print("pairwise F-score: avg_pre: %.6f, avg_rec: %.6f, fscore: %.6f" % (avg_pre, avg_rec, fscore))
+    # V-measure
+    diverse_score, purity_score, V_measure = get_DPV_measure(label_true, pred_labels)
+    h, c, v = V_measure
+    print("V-measure score: h: %.6f, c: %.6f, v: %.6f" % (h, c, v))
+    print("*" * 50)
 
 if __name__ == "__main__":
     cfg = CONFIG

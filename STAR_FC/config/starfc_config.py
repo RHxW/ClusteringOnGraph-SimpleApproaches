@@ -13,7 +13,7 @@ CONFIG = {
     "SR_epochs": 20,
 
     "knn": 20,
-    "knn_method": "hnsw",  # hnsw=nmslib, faiss, faiss_gpu
+    "knn_method": "faiss_gpu_single",  # hnsw=nmslib, faiss, faiss_gpu_single, faiss_gpu_all
     "cut_edge_sim_th": 0.6,  # origin th_sim
     "eval_interim": True,  # ?
 
@@ -33,6 +33,10 @@ CONFIG = {
     "N": 10,
     "K1_ratio": 0.8,
     "K2_ratio": 0.8,
+
+    # inference parameters
+    "threshold1": 0.3,
+    "threshold2": 0.3,
 
     # optimizer
     "lr": 0.01,
