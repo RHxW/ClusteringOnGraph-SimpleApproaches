@@ -44,4 +44,4 @@ So it looks like that the GCNV does help on a weak model.
 I also tried dimension reduction on GCNV features and original features.
 And the conclusion is:
 
-GCNV features is much better than the origin ones. And the lower the dimension goes, the better GCNV features outperforms.
+GCNV features is much better than the original ones. And the lower the dimension goes, the better GCNV features outperforms.
